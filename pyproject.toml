@@ -1,0 +1,16 @@
+[project]
+name = "eicat-ai"
+version = "0.1.0"
+description = "AI tools for assisting in the generation of EICAT assessments."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic-ai>=1.0.13",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.30.1",
+    "ipywidgets>=8.1.7",
+    "pytest>=8.4.2",
+]
