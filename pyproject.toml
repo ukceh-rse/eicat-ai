@@ -5,7 +5,11 @@ description = "AI tools for assisting in the generation of EICAT assessments."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "elsapy>=0.5.1",
+    "pandas>=2.3.3",
+    "pybliometrics>=4.3",
     "pydantic-ai>=1.0.13",
+    "pygbif>=0.6.5",
 ]
 
 [dependency-groups]
