@@ -453,10 +453,13 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "elsapy" },
+    { name = "fastapi" },
     { name = "pandas" },
     { name = "pybliometrics" },
     { name = "pydantic-ai" },
+    { name = "pydantic-ai-slim", extra = ["a2a"] },
     { name = "pygbif" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -469,10 +472,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "elsapy", specifier = ">=0.5.1" },
+    { name = "fastapi", specifier = ">=0.119.0" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pybliometrics", specifier = ">=4.3" },
     { name = "pydantic-ai", specifier = ">=1.0.13" },
+    { name = "pydantic-ai-slim", extras = ["a2a"], specifier = ">=1.0.13" },
     { name = "pygbif", specifier = ">=0.6.5" },
+    { name = "uvicorn", specifier = ">=0.37.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -510,6 +516,34 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cc/28/c14e053b6762b1044f34a13aab6859bbf40456d37d23aa286ac24cfd9a5d/executing-2.2.1.tar.gz", hash = "sha256:3632cc370565f6648cc328b32435bd120a1e4ebb20c77e3fdde9a13cd1e533c4", size = 1129488 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/ea/53f2148663b321f21b5a606bd5f191517cf40b7072c0497d3c92c4a13b1e/executing-2.2.1-py2.py3-none-any.whl", hash = "sha256:760643d3452b4d777d295bb167ccc74c64a81df23fb5e08eff250c425a4b2017", size = 28317 },
+]
+
+[[package]]
+name = "fasta2a"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "pydantic" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/d1/7a3ab5d4519141978eb47d3f24dff06bc4fa0b39f31e155c1934de95d8e6/fasta2a-0.6.0.tar.gz", hash = "sha256:8078fad9b9dabf7ee4abb3fcb1ca9e5b43bb55c0262be2425bc48cc69f77e963", size = 1436353 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/14/64899f718727770099f53e8698529fc83ec2a3a4d311270dfb9f6e2bec06/fasta2a-0.6.0-py3-none-any.whl", hash = "sha256:23d49307f6a372e07b9ec9a21187a0864429145e8ded4a41262bd33e2ecaee4c", size = 25403 },
+]
+
+[[package]]
+name = "fastapi"
+version = "0.119.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0a/f9/5c5bcce82a7997cc0eb8c47b7800f862f6b56adc40486ed246e5010d443b/fastapi-0.119.0.tar.gz", hash = "sha256:451082403a2c1f0b99c6bd57c09110ed5463856804c8078d38e5a1f1035dbbb7", size = 336756 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/70/584c4d7cad80f5e833715c0a29962d7c93b4d18eed522a02981a6d1b6ee5/fastapi-0.119.0-py3-none-any.whl", hash = "sha256:90a2e49ed19515320abb864df570dd766be0662c5d577688f1600170f7f73cf2", size = 107095 },
 ]
 
 [[package]]
@@ -1858,6 +1892,9 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+a2a = [
+    { name = "fasta2a" },
+]
 ag-ui = [
     { name = "ag-ui-protocol" },
     { name = "starlette" },
