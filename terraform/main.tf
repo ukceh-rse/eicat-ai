@@ -82,10 +82,12 @@ resource "aws_apprunner_service" "eicat_ai" {
 
   source_configuration {
     auto_deployments_enabled = true
+    authentication_configuration {
+        connection_arn = aws_apprunner_connection.github.arn
+    }
     
     code_repository {
       repository_url = var.github_repo_url
-      connection_arn = aws_apprunner_connection.github.arn
       
       code_configuration {
         configuration_source = "REPOSITORY"
