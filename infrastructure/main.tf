@@ -85,7 +85,6 @@ resource "aws_apprunner_service" "eicat_ai" {
     
     code_repository {
       repository_url = var.github_repo_url
-      connection_arn = aws_apprunner_connection.github.arn
       
       code_configuration {
         configuration_source = "REPOSITORY"

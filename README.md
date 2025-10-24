@@ -16,3 +16,6 @@ uv sync
 - Data classification module
 - Report template generation module
 - Terminology checker module
+
+# Deployment
+- For deployment instructions see [infrastructure/README.md](infrastructure/README.md).

@@ -1,5 +1,0 @@
-aws_region = "us-east-1"
-app_name = "eicat-ai"
-github_repo_url = "https://github.com/ukceh-rse/eicat-ai"
-deploy_branch = "main"
-environment = "production"
