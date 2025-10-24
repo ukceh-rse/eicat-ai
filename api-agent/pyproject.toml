@@ -8,8 +8,11 @@ dependencies = [
     "elsapy>=0.5.1",
     "pandas>=2.3.3",
     "pybliometrics>=4.3",
-    "pydantic-ai>=1.0.13",
+    "pydantic-ai-slim[a2a,ag-ui]>=1.0.13",
+    "pydantic-ai[ag-ui]>=1.0.13",
     "pygbif>=0.6.5",
+    "fastapi>=0.119.0",
+    "uvicorn>=0.37.0",
 ]
 
 [dependency-groups]
@@ -18,3 +21,7 @@ dev = [
     "ipywidgets>=8.1.7",
     "pytest>=8.4.2",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

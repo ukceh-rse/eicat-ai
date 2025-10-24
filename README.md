@@ -1,13 +1,6 @@
 # EICAT AI
 AI tools for assisting in the generation of EICAT assessments.
 
-## Setup
-### Dependencies
-- [uv](https://docs.astral.sh/uv/)
-```
-uv sync
-```
-
 # Roadmap 
 - Search string module
 - Paper retrieval module
@@ -16,3 +9,6 @@ uv sync
 - Data classification module
 - Report template generation module
 - Terminology checker module
+
+# Deployment
+- For deployment instructions see [infrastructure/README.md](infrastructure/README.md).
