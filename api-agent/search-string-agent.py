@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from pygbif import species
 from typing import List
 import uvicorn
+from loguru import logger
 
 
 class SpeciesNames(BaseModel):
@@ -78,5 +79,8 @@ app.add_middleware(
 )
 
 if __name__ == "__main__":
-    print(f"App type: {type(app)}")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    app_host = "127.0.0.1"
+    app_port = 8000
+    app_type = type(app)
+    logger.info(f"Starting {app_type} app on {app_host}:{app_port}")
+    uvicorn.run(app, host=app_host, port=app_port)
