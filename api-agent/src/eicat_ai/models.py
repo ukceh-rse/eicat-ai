@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pydantic import BaseModel
 import json
-from typing import List
+from typing import List, Literal
 
 
 class Paper(BaseModel):
@@ -45,3 +45,36 @@ class Paper(BaseModel):
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         return cls.model_validate(data)
+
+
+class Impact(BaseModel):
+    excerpt: str
+    """The excerpt of text describing the impact of the invasive species"""
+    level: Literal["MV", "MR", "MO", "MN", "MC", "DD", "NA", "NE"]
+    """The level of the impact based on the EICAT guidelines:
+    - MV: Massive (Irreversible extinction of a native species)
+    - MR: Major (Extinction of local population of native species that is reversible)
+    - MO: Moderate (Decline in native species population)
+    - MN: Minor (No decline in population but some impact on performance of native species)
+    - MC: Minimal Concern (No significant impact observed)
+    - DD: Data Deficent (No data available or impacts or insufficient time for impacts to be observed)
+    - NA: No Alien Populations (No alien species in non-native area)
+    - NE: Not Evaluated
+    """
+    category: Literal[
+        "Competition",
+        "Predation",
+        "Hybridisation",
+        "Disease Transmission",
+        "Parasitism",
+        "Poisoning/Toxicity",
+        "Bio-fouling",
+        "Grazing",
+        "Chemical Impact",
+        "Physical Impact",
+        "Structural Impact",
+        "Indirect Impact",
+    ]
+    """Category describing the mechanism by which the invasive species has had an impact on a native population."""
+    confidence: Literal["low", "medium", "high"]
+    """A confidence score indicating the confidence of the impact and the category level."""

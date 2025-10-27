@@ -1,5 +1,6 @@
 from pydantic_ai import Agent, ModelSettings
-from eicat_ai.models import Paper
+from eicat_ai.models import Paper, Impact
+from typing import List
 
 
 def paper_agent(model_name: str) -> Agent[None, Paper]:
@@ -49,5 +50,49 @@ def paper_agent(model_name: str) -> Agent[None, Paper]:
         OUTPUT FORMAT
         - Output a **single JSON object** with keys `title`, `authors`, `content`, `references`
         - Do not include any wrapper text, commentary, or explanations — JSON only
+        """,
+    )
+
+
+def data_extraction_agent(model_name: str) -> Agent[None, List[Impact]]:
+    return Agent[None, List[Impact]](
+        model_name,
+        output_type=List[Impact],
+        output_retries=2,
+        model_settings=ModelSettings(max_tokens=10_000, temperature=0.0),
+        system_prompt="""
+        You will be provided with text from an academic paper. 
+        You must extract from the paper the impacts caused by an invasive species on any native local species.
+        These impacts should be returned as a list of JSON objects in the following Pydantic schema:
+
+        class Impact(BaseModel):
+            excerpt: str
+            level: Literal["MV", "MR", "MO", "MN", "MC", "DD", "NA", "NE"]
+            category: Literal[
+                "Competition",
+                "Predation",
+                "Hybridisation",
+                "Disease Transmission",
+                "Parasitism",
+                "Poisoning/Toxicity",
+                "Bio-fouling",
+                "Grazing",
+                "Chemical Impact",
+                "Physical Impact",
+                "Structural Impact",
+                "Indirect Impact",
+            ]
+
+        "excerpt" should be the text from the paper describing the impact verbatim
+        "level" should be a level of the impact based on the EICAT descriptions:
+            - MV: Massive (Irreversible extinction of a native species)
+            - MR: Major (Extinction of local population of native species that is reversible)
+            - MO: Moderate (Decline in native species population)
+            - MN: Minor (No decline in population but some impact on performance of native species)
+            - MC: Minimal Concern (No significant impact observed)
+            - DD: Data Deficent (No data available or impacts or insufficient time for impacts to be observed)
+            - NA: No Alien Populations (No alien species in non-native area)
+            - NE: Not Evaluated
+        "categroy" should describe the mechanism by which the invasive species impacts the local population.
         """,
     )
