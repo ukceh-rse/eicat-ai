@@ -7,9 +7,9 @@ from enum import Enum
 
 
 class Paper(BaseModel):
-    title: str
+    title: str = ""
     """The full paper title exactly as it appears in the article, without markup."""
-    authors: List[str]
+    authors: List[str] = []
     """An ordered list of author full names as printed in the article."""
     content: str
     """
@@ -18,7 +18,7 @@ class Paper(BaseModel):
     using appropriate Markdown syntax for headings, lists, math, etc.
     Do not summarize or paraphrase.
     """
-    references: List[str]
+    references: List[str] = []
     """
     An ordered list of individual references extracted from the article's
     References/Bibliography section. Each element is a single full reference
