@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
 import csv
 from typing import List, Literal
@@ -7,23 +7,33 @@ from enum import Enum
 
 
 class Paper(BaseModel):
-    title: str = ""
-    """The full paper title exactly as it appears in the article, without markup."""
-    authors: List[str] = []
-    """An ordered list of author full names as printed in the article."""
-    content: str
-    """
-    The entire body of the article excluding the References section,
-    rendered in valid Markdown. Preserve original wording and structure,
-    using appropriate Markdown syntax for headings, lists, math, etc.
-    Do not summarize or paraphrase.
-    """
-    references: List[str] = []
-    """
-    An ordered list of individual references extracted from the article's
-    References/Bibliography section. Each element is a single full reference
-    string exactly as printed (no Markdown). One reference per list item.
-    """
+    title: str = Field(
+        default="",
+        title="Paper Title",
+        description="The full paper title exactly as it appears in the article, without markup.",
+    )
+
+    authors: List[str] = Field(
+        default_factory=list,
+        title="Authors",
+        description="An ordered list of author full names as printed in the article.",
+    )
+
+    content: str = Field(
+        title="Paper Content",
+        description="""The entire body of the article excluding the References section,
+        rendered in valid Markdown. Preserve original wording and structure,
+        using appropriate Markdown syntax for headings, lists, math, etc.
+        Do not summarize or paraphrase.""",
+    )
+
+    references: List[str] = Field(
+        default_factory=list,
+        title="References",
+        description="""An ordered list of individual references extracted from the article's
+        References/Bibliography section. Each element is a single full reference
+        string exactly as printed (no Markdown). One reference per list item.""",
+    )
 
     def save(self, filepath: str) -> None:
         """Save the paper instance to a JSON file.
@@ -120,39 +130,37 @@ class Mechanism(str, Enum):
 
 
 class Impact(BaseModel):
-    alien_species: str
-    """Name of the alien species causing the impact"""
-    mechanism: Mechanism
-    """Mechanism by which the impact occurs. Available options:
-        (1) Competition: Competing for resources with native species (e.g. food, water, space).
-        (2) Predation: Alien taxa predate on native species.
-        (3) Hybridisation: Alien species mating with native species, eliminating native population.
-        (4) Transmission: of diseases to native species - Passing diseases to natice species.
-        (5) Parasitism: Alien taxa parasites native species.
-        (6) Poisoning/toxicity: Alien taxa is poisonous or toxic through ingestion or contact with native species.
-        (7) Bio-fouling: physically impeding native species.
-        (8) Grazing/herbivory/browsing: Alien species eating a native plant species.
-        (9) Chemical Impact on ecosystem: Chemical changes to environment caused by alien speceies that affect native species.
-        (10) Physical Impact on ecosystem: Physical changes to environment caused by alien speceies that affect native species.
-        (11) Structural Impact on ecosystem: Structural changes to environment caused by alien speceies that affect native species.
-        (12) Indirect impacts through interactions with other species: Potential for the alien species to increase one native species population that as a result decrease the population of another native species.
-    """
-    category: Category
-    """Category of the impact. Available options:
-    MV (Massive): Irreversible extinction of a native species
-    MR (Major): Extinction of local population of native species that is reversible
-    MO (Moderate): Decline in native species population
-    MN (Minor): No decline in population but some impact on performance of native species
-    MC (Minimal Concern): No significant impact observed
-    DD (Data Deficient): No data available or impacts or insufficient time for impacts to be observed"""
-    evidence: str
-    """Excerpt of text from the paper extracted verbatim as evidence for the impact."""
-    confidence: Literal["low", "medium", "high"]
-    """A confidence rating"""
-    justification: str
-    """Explanation of choice in confidence rating"""
-    impacted_species: List[str]
-    """A list of the impacted species"""
+    alien_species: str = Field(
+        title="Species", description="Name of the alien species causing the impact"
+    )
+
+    mechanism: Mechanism = Field(
+        title="Impact mechanism",
+        description="Mechanism by which the impact occurs. Use one of the available Mechanism enum values.",
+    )
+
+    category: Category = Field(
+        title="EICAT Category",
+        description="Category of the impact. Use one of the available Category enum values.",
+    )
+
+    evidence: str = Field(
+        title="Evidence for EICAT impact category",
+        description="Excerpt of text from the paper extracted verbatim as evidence for the impact.",
+    )
+
+    confidence: Literal["low", "medium", "high"] = Field(
+        title="Confidence rating", description="A confidence rating"
+    )
+    
+    justification: str = Field(
+        title="Justification for confidence rating",
+        description="Explanation of choice in confidence rating",
+    )
+
+    impacted_species: List[str] = Field(
+        title="Impacted native species", description="A list of the impacted species"
+    )
 
     @classmethod
     def save_to_csv(cls, impacts: List["Impact"], filepath: str) -> None:
@@ -164,21 +172,12 @@ class Impact(BaseModel):
         """
         with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile)
+            field_titles = [
+                cls.model_fields[field_name].title or field_name
+                for field_name in cls.model_fields.keys()
+            ]
+            writer.writerow(field_titles)
 
-            # Write header
-            writer.writerow(
-                [
-                    "alien_species",
-                    "mechanism",
-                    "category",
-                    "evidence",
-                    "confidence",
-                    "justification",
-                    "impacted_species",
-                ]
-            )
-
-            # Write data rows
             for impact in impacts:
                 writer.writerow(
                     [

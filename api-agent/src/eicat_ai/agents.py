@@ -80,6 +80,7 @@ def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
         5) Confidence must follow EICAT guidance on evidence quality, scale, confounding, and inference.
         6) For each impact, list the native species impacted (scientific names if given; otherwise exact strings from text).
         7) Ignore impacts that are not environmental (e.g., socio-economic only), or that do not yield any ecological change on a native taxon.
+        8) Consider all evidence that could be perceived as an impact based on the EICAT mechanisms, not just impacts or concerns explicilty highlighted by the author.
 
         For each impact you extract you must output exactly:
         - alien_species — invasive taxon name as stated
