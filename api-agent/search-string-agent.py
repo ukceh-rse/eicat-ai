@@ -72,7 +72,7 @@ def lookup_species_names(species_name: str) -> List[SpeciesNames]:
 app = agent.to_ag_ui(debug=True)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or list of allowed origins like ["http://localhost:3000"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

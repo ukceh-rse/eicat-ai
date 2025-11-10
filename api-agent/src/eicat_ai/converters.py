@@ -1,6 +1,7 @@
 from pydantic_ai import Agent, BinaryContent
-from eicat_ai.models import Paper
+from eicat_ai.models import Paper, Impact
 from pathlib import Path
+from typing import List
 
 
 async def pdf_to_markdown(agent: Agent[None, Paper], pdf_filepath: str) -> Paper:
@@ -20,4 +21,13 @@ async def pdf_to_markdown(agent: Agent[None, Paper], pdf_filepath: str) -> Paper
             BinaryContent(data=p.read_bytes(), media_type="application/pdf"),
         ]
     )
+    return result.output
+
+
+async def extract_impacts(
+    agent: Agent[Paper, List[Impact]], paper: Paper, species: str
+) -> List[Impact]:
+    print(paper)
+    result = await agent.run([f"Extract all impacts caused by {species}(s)"], deps=paper)
+    print(result)
     return result.output

@@ -2,7 +2,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 import json
 import csv
-from typing import List, Literal
+from typing import List, Literal, Optional
 from enum import Enum
 
 
@@ -91,35 +91,35 @@ class Category(str, Enum):
 class Mechanism(str, Enum):
     """Mechanism of impact"""
 
-    COMPETITION = "(1) Competition"
-    PREDATION = "(2) Predation"
-    HYBRIDISATION = "(3) Hybridisation"
-    TRANSMISSION_OF_DISEASES = "(4) Transmission of diseases to native species"
-    PARASITISM = "(5) Parasitism"
-    POISONING_TOXICITY = "(6) Poisoning/ toxicity"
-    BIO_FOULING = "(7) Bio-fouling"
-    GRAZING_HERBIVORY_BROWSING = "(8) Grazing/herbivory/browsing"
-    CHEMICAL_IMPACT = "(9) Chemical Impact on ecosystem"
-    PHYSICAL_IMPACT = "(10) Physical Impact on ecosystem"
-    STRUCTURAL_IMPACT = "(11) Structural Impact on ecosystem"
-    INDIRECT_IMPACTS = "(12) Indirect impacts through interactions with other species"
+    COMPETITION = "Competition"
+    PREDATION = "Predation"
+    HYBRIDISATION = "Hybridisation"
+    TRANSMISSION_OF_DISEASES = "Transmission of diseases to native species"
+    PARASITISM = "Parasitism"
+    POISONING_TOXICITY = "Poisoning/ toxicity"
+    BIO_FOULING = "Bio-fouling"
+    GRAZING_HERBIVORY_BROWSING = "Grazing/herbivory/browsing"
+    CHEMICAL_IMPACT = "Chemical Impact on ecosystem"
+    PHYSICAL_IMPACT = "Physical Impact on ecosystem"
+    STRUCTURAL_IMPACT = "Structural Impact on ecosystem"
+    INDIRECT_IMPACTS = "Indirect impacts through interactions with other species"
 
     @property
     def description(self) -> str:
         """Get the full description of the mechanism."""
         descriptions = {
-            "(1) Competition": "Competing for resources with native species (e.g. food, water, space)",
-            "(2) Predation": "Alien taxa predate on native species",
-            "(3) Hybridisation": "Alien species mating with native species, eliminating native population",
-            "(4) Transmission of diseases to native species": "Passing diseases to native species",
-            "(5) Parasitism": "Alien taxa parasites native species",
-            "(6) Poisoning/ toxicity": "Alien taxa is poisonous or toxic through ingestion or contact with native species",
-            "(7) Bio-fouling": "Physically impeding native species",
-            "(8) Grazing/herbivory/browsing": "Alien species eating a native plant species",
-            "(9) Chemical Impact on ecosystem": "Chemical changes to environment caused by alien species that affect native species",
-            "(10) Physical Impact on ecosystem": "Physical changes to environment caused by alien species that affect native species",
-            "(11) Structural Impact on ecosystem": "Structural changes to environment caused by alien species that affect native species",
-            "(12) Indirect impacts through interactions with other species": "Potential for the alien species to increase one native species population that as a result decrease the population of another native species",
+            "Competition": "Competing for resources with native species (e.g. food, water, space)",
+            "Predation": "Alien taxa predate on native species",
+            "Hybridisation": "Alien species mating with native species, eliminating native population",
+            "Transmission of diseases to native species": "Passing diseases to native species",
+            "Parasitism": "Alien taxa parasites native species",
+            "Poisoning/ toxicity": "Alien taxa is poisonous or toxic through ingestion or contact with native species",
+            "Bio-fouling": "Physically impeding native species",
+            "Grazing/herbivory/browsing": "Alien species eating a native plant species",
+            "Chemical Impact on ecosystem": "Chemical changes to environment caused by alien species that affect native species",
+            "Physical Impact on ecosystem": "Physical changes to environment caused by alien species that affect native species",
+            "Structural Impact on ecosystem": "Structural changes to environment caused by alien species that affect native species",
+            "Indirect impacts through interactions with other species": "Potential for the alien species to increase one native species population that as a result decrease the population of another native species",
         }
         return descriptions[self.value]
 
@@ -149,10 +149,10 @@ class Impact(BaseModel):
         description="Excerpt of text from the paper extracted verbatim as evidence for the impact.",
     )
 
-    confidence: Literal["low", "medium", "high"] = Field(
-        title="Confidence rating", description="A confidence rating"
+    confidence: Optional[Literal["Low", "Medium", "High"]] = Field(
+        default=None, title="Confidence rating", description="A confidence rating"
     )
-    
+
     justification: str = Field(
         title="Justification for confidence rating",
         description="Explanation of choice in confidence rating",
@@ -190,3 +190,62 @@ class Impact(BaseModel):
                         ", ".join(impact.impacted_species),
                     ]
                 )
+
+    @classmethod
+    def load_from_csv(cls, filepath: str) -> List["Impact"]:
+        """Load a list of Impact instances from a CSV file.
+
+        Args:
+            filepath: Path to the CSV file to load.
+
+        Returns:
+            A list of Impact instances loaded from the CSV file.
+        """
+        impacts = []
+        with open(filepath, "r", newline="", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                impacted_species = [
+                    species.strip()
+                    for species in row["Impacted native species"].split(",")
+                    if species.strip()
+                ]
+                confidence_value = row["Confidence rating"].strip()
+                confidence = confidence_value if confidence_value else None
+
+                impact = cls(
+                    alien_species=row["Species"],
+                    mechanism=Mechanism(row["Impact mechanism"]),
+                    category=Category(row["EICAT Category"]),
+                    evidence=row["Evidence for EICAT impact category"],
+                    confidence=confidence,
+                    justification=row["Justification for confidence rating"],
+                    impacted_species=impacted_species,
+                )
+                impacts.append(impact)
+        return impacts
+
+
+class ImpactMatch(BaseModel):
+    """Judgment for whether each predicted impact matches a gold-standard impact."""
+
+    predicted_impact: str = Field(..., description="Predicted impact text.")
+    matches_gold: bool = Field(
+        ...,
+        description="True if this predicted impact corresponds to a gold-standard impact.",
+    )
+    justification: str = Field(..., description="Short explanation for the decision.")
+
+
+class F1Evaluation(BaseModel):
+    """LLM-judge rubric for extraction quality."""
+
+    matches: List[ImpactMatch]
+    precision: float = Field(..., description="Precision = TP / (TP + FP)")
+    recall: float = Field(..., description="Recall = TP / (TP + FN)")
+    f1_score: float = Field(
+        ..., description="F1 = 2 * (precision * recall) / (precision + recall)"
+    )
+    justification: str = Field(
+        ..., description="Brief reasoning about the overall quality of the extraction."
+    )
