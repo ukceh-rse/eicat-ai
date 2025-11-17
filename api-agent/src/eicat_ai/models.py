@@ -224,28 +224,3 @@ class Impact(BaseModel):
                 )
                 impacts.append(impact)
         return impacts
-
-
-class ImpactMatch(BaseModel):
-    """Judgment for whether each predicted impact matches a gold-standard impact."""
-
-    predicted_impact: str = Field(..., description="Predicted impact text.")
-    matches_gold: bool = Field(
-        ...,
-        description="True if this predicted impact corresponds to a gold-standard impact.",
-    )
-    justification: str = Field(..., description="Short explanation for the decision.")
-
-
-class F1Evaluation(BaseModel):
-    """LLM-judge rubric for extraction quality."""
-
-    matches: List[ImpactMatch]
-    precision: float = Field(..., description="Precision = TP / (TP + FP)")
-    recall: float = Field(..., description="Recall = TP / (TP + FN)")
-    f1_score: float = Field(
-        ..., description="F1 = 2 * (precision * recall) / (precision + recall)"
-    )
-    justification: str = Field(
-        ..., description="Brief reasoning about the overall quality of the extraction."
-    )

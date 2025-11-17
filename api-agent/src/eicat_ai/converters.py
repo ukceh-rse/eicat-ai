@@ -27,7 +27,7 @@ async def pdf_to_markdown(agent: Agent[None, Paper], pdf_filepath: str) -> Paper
 async def extract_impacts(
     agent: Agent[Paper, List[Impact]], paper: Paper, species: str
 ) -> List[Impact]:
-    print(paper)
-    result = await agent.run([f"Extract all impacts caused by {species}(s)"], deps=paper)
-    print(result)
+    result = await agent.run(
+        [f"Extract all impacts caused by {species}(s)"], deps=paper
+    )
     return result.output
