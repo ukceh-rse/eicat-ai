@@ -460,6 +460,7 @@ dependencies = [
     { name = "pydantic-ai" },
     { name = "pydantic-ai-slim", extra = ["a2a", "ag-ui"] },
     { name = "pygbif" },
+    { name = "rich" },
     { name = "typer" },
     { name = "uvicorn" },
 ]
@@ -481,6 +482,7 @@ requires-dist = [
     { name = "pydantic-ai", extras = ["ag-ui"], specifier = ">=1.0.13" },
     { name = "pydantic-ai-slim", extras = ["a2a", "ag-ui"], specifier = ">=1.0.13" },
     { name = "pygbif", specifier = ">=0.6.5" },
+    { name = "rich", specifier = ">=14.1.0" },
     { name = "typer", specifier = ">=0.20.0" },
     { name = "uvicorn", specifier = ">=0.37.0" },
 ]

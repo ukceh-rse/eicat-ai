@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from pathlib import Path
 import typer
 from typing_extensions import Annotated
+from rich.progress import Progress, TaskID
 
 evaluation_model: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
 
@@ -179,25 +180,34 @@ def load_dynamic_evaluation_dataset(
     path: str, model_name: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
 ) -> Dataset:
     cases = []
-    for test_case in Path(path).iterdir():
-        if not test_case.is_dir():
-            continue
-        paper = test_case / "paper.json"
-        species = test_case / "alien-species.json"
-        gold_impacts = test_case / "gold-impacts.csv"
-        print(test_case)
-        if paper.exists() and species.exists() and gold_impacts.exists():
-            cases.append(
-                Case(
-                    name=test_case.name,
-                    inputs={
-                        "agent": data_extraction_agent(model_name),
-                        "paper": Paper.load(str(paper)),
-                        "species": SpeciesNames.load(str(species)),
-                    },
-                    expected_output=Impact.load_from_csv(str(gold_impacts)),
+    test_case_dirs = [d for d in Path(path).iterdir() if d.is_dir()]
+
+    with Progress() as progress:
+        task = progress.add_task(
+            "Loading evaluation dataset...", total=len(test_case_dirs)
+        )
+        for test_case in Path(path).iterdir():
+            if not test_case.is_dir():
+                continue
+            paper = test_case / "paper.json"
+            species = test_case / "alien-species.json"
+            gold_impacts = test_case / "gold-impacts.csv"
+
+            if paper.exists() and species.exists() and gold_impacts.exists():
+                progress.update(task, description=f"Loading {test_case.name}...")
+                cases.append(
+                    Case(
+                        name=test_case.name,
+                        inputs={
+                            "agent": data_extraction_agent(model_name),
+                            "paper": Paper.load(str(paper)),
+                            "species": SpeciesNames.load(str(species)),
+                        },
+                        expected_output=Impact.load_from_csv(str(gold_impacts)),
+                    )
                 )
-            )
+                progress.advance(task)
+            progress.update(task, description="Loading evaluation dataset")
     return Dataset(cases=cases, evaluators=[AccuracyLLMJudge()])
 
 
