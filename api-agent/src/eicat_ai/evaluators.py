@@ -6,12 +6,15 @@ from pydantic_evals.evaluators import (
     EvaluatorContext,
     EvaluatorOutput,
 )
-from eicat_ai.models import Paper, Impact, Mechanism, Category
+from eicat_ai.models import Paper, Impact, Mechanism, Category, SpeciesNames
 from eicat_ai.converters import extract_impacts
 from eicat_ai.agents import data_extraction_agent
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Literal
 from pydantic_ai import Agent, RunContext
 from pydantic import BaseModel, Field
+from pathlib import Path
+import typer
+from typing_extensions import Annotated
 
 evaluation_model: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
 
@@ -163,21 +166,6 @@ dataset = Dataset(
                 ),
             ],
         ),
-        Case(
-            name="Bednarczuk",
-            inputs={
-                "agent": data_extraction_agent(
-                    "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
-                ),
-                "paper": Paper.load(
-                    "/home/mpc/github/eicat-ai/data/eval/Bednarczuk/paper.json"
-                ),
-                "species": "Passer domesticus",
-            },
-            expected_output=Impact.load_from_csv(
-                "/home/mpc/github/eicat-ai/data/eval/Bednarczuk/human-extracted-impacts.csv"
-            ),
-        ),
     ],
     evaluators=[AccuracyLLMJudge()],
 )
@@ -187,6 +175,51 @@ async def impact_extraction(inputs: dict) -> List[Impact]:
     return await extract_impacts(inputs["agent"], inputs["paper"], inputs["species"])
 
 
-if __name__ == "__main__":
-    report = dataset.evaluate_sync(impact_extraction)
+def load_dynamic_evaluation_dataset(
+    path: str, model_name: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
+) -> Dataset:
+    cases = []
+    for test_case in Path(path).iterdir():
+        if not test_case.is_dir():
+            continue
+        paper = test_case / "paper.json"
+        species = test_case / "alien-species.json"
+        gold_impacts = test_case / "gold-impacts.csv"
+        print(test_case)
+        if paper.exists() and species.exists() and gold_impacts.exists():
+            cases.append(
+                Case(
+                    name=test_case.name,
+                    inputs={
+                        "agent": data_extraction_agent(model_name),
+                        "paper": Paper.load(str(paper)),
+                        "species": SpeciesNames.load(str(species)),
+                    },
+                    expected_output=Impact.load_from_csv(str(gold_impacts)),
+                )
+            )
+    return Dataset(cases=cases, evaluators=[AccuracyLLMJudge()])
+
+
+MODEL_MAP = {
+    "claude": "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0",
+}
+
+
+def main(
+    eval_path: Annotated[
+        str, typer.Argument(help="Path to the evaluation dataset directory")
+    ],
+    model: Annotated[
+        Literal["claude"],
+        typer.Option("-m", "--model", help="Model name to use for evaluation"),
+    ] = "claude",
+):
+    """Evaluate impact extraction model."""
+    eval_dataset: Dataset = load_dynamic_evaluation_dataset(eval_path, MODEL_MAP[model])
+    report = eval_dataset.evaluate_sync(impact_extraction)
     report.print()
+
+
+if __name__ == "__main__":
+    typer.run(main)

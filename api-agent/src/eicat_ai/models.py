@@ -6,6 +6,38 @@ from typing import List, Literal, Optional
 from enum import Enum
 
 
+class SpeciesNames(BaseModel):
+    scientific_name: str = Field(
+        description="The scientific name of a particular species"
+    )
+    vernacular_names: List[str] = Field(
+        descritpion="A list of common or vernacular names that the particular species is also known by."
+    )
+
+    def save(self, filepath: str) -> None:
+        """Save the species names instance to a JSON file.
+
+        Args:
+            filepath: Path where the JSON file will be written.
+        """
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(self.model_dump_json(indent=2))
+
+    @classmethod
+    def load(cls, filepath: str) -> "SpeciesNames":
+        """Load a species names instance from a JSON file.
+
+        Args:
+            filepath: Path to the JSON file to load.
+
+        Returns:
+            A SpeciesNames instance with data loaded from the file.
+        """
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return cls.model_validate(data)
+
+
 class Paper(BaseModel):
     title: str = Field(
         default="",
