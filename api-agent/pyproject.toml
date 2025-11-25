@@ -16,6 +16,7 @@ dependencies = [
     "loguru>=0.7.3",
     "typer>=0.20.0",
     "rich>=14.1.0",
+    "pydantic-settings>=2.11.0",
 ]
 
 [dependency-groups]

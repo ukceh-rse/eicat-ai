@@ -4,6 +4,8 @@ import json
 import csv
 from typing import List, Literal, Optional
 from enum import Enum
+from pathlib import Path
+import shutil
 
 
 class SpeciesNames(BaseModel):
@@ -256,3 +258,76 @@ class Impact(BaseModel):
                 )
                 impacts.append(impact)
         return impacts
+
+
+class UploadMetadata(BaseModel):
+    id: str
+    filename: str
+    content_type: str
+    size: int
+    timestamp: str
+
+    def save(self, base_path: Path) -> None:
+        """Save metadata to JSON file in the upload folder"""
+        file_folder = base_path / self.id
+        file_folder.mkdir(parents=True, exist_ok=True)
+
+        metadata_path = file_folder / "metadata.json"
+        with open(metadata_path, "w") as f:
+            json.dump(self.model_dump(), f, indent=2)
+
+    @classmethod
+    def load(cls, folder_path: Path) -> Optional["UploadMetadata"]:
+        """Load metadata from JSON file in the upload folder"""
+        metadata_path = folder_path / "metadata.json"
+        if not metadata_path.exists():
+            return None
+
+        try:
+            with open(metadata_path, "r") as f:
+                metadata_dict = json.load(f)
+            metadata_dict["id"] = folder_path.name
+            return cls(**metadata_dict)
+        except (json.JSONDecodeError, IOError, ValueError):
+            return None
+
+    @classmethod
+    def load_by_id(cls, upload_id: str, base_path: Path) -> Optional["UploadMetadata"]:
+        """Load metadata for a specific upload by ID"""
+        file_folder = base_path / upload_id
+
+        if not file_folder.exists():
+            return None
+
+        return cls.load(file_folder)
+
+    @classmethod
+    def load_all(cls, base_path: Path) -> List["UploadMetadata"]:
+        """Load all metadata from upload folders"""
+        uploads = []
+
+        if not base_path.exists():
+            return uploads
+
+        for folder in base_path.iterdir():
+            if folder.is_dir():
+                metadata = cls.load(folder)
+                if metadata:
+                    uploads.append(metadata)
+
+        uploads.sort(key=lambda x: x.timestamp, reverse=True)
+        return uploads
+
+    @classmethod
+    def delete(cls, upload_id: str, base_path: Path) -> bool:
+        """Delete an upload folder and all its contents"""
+        file_folder = base_path / upload_id
+
+        if not file_folder.exists():
+            return False
+
+        try:
+            shutil.rmtree(file_folder)
+            return True
+        except OSError:
+            return False

@@ -44,3 +44,48 @@ p {
 h1 {
   @apply mb-6
 }
+
+/* Table styles */
+.table-container {
+  @apply overflow-x-auto;
+}
+
+.table {
+  @apply min-w-full bg-white border border-gray-200 rounded-lg shadow;
+}
+
+.table thead {
+  @apply bg-gray-50;
+}
+
+.table th {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.table tbody {
+  @apply bg-white divide-y divide-gray-200;
+}
+
+.table tr {
+  @apply hover:bg-gray-50;
+}
+
+.table td {
+  @apply px-6 py-4 whitespace-nowrap;
+}
+
+.table .cell-primary {
+  @apply text-sm font-medium text-gray-900;
+}
+
+.table .cell-secondary {
+  @apply text-sm text-gray-500;
+}
+
+.table .cell-regular {
+  @apply text-sm text-gray-900;
+}
+
+.table .cell-actions {
+  @apply text-sm font-medium;
+}

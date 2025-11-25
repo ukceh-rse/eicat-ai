@@ -10,8 +10,8 @@ export default function Navigation() {
                 <h3 className="nav-title">EICAT-AI</h3>
             </div>
             <Link to="/" className="nav-link">Home</Link>
-            <Link to="/extract" className="nav-link">Data Extraction</Link>
             <Link to="/upload" className="nav-link">Upload</Link>
+            <Link to="/extract" className="nav-link">Data Extraction</Link>
         </nav>
     )
 }
