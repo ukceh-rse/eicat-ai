@@ -2,7 +2,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 import json
 import csv
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict, Any
 from enum import Enum
 from pathlib import Path
 import shutil
@@ -67,6 +67,12 @@ class Paper(BaseModel):
         description="""An ordered list of individual references extracted from the article's
         References/Bibliography section. Each element is a single full reference
         string exactly as printed (no Markdown). One reference per list item.""",
+    )
+
+    metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        title="Metadata",
+        description="Optional metadata about the paper such as DOI, publication date, journal, keywords, etc.",
     )
 
     def save(self, filepath: str) -> None:
@@ -266,6 +272,7 @@ class UploadMetadata(BaseModel):
     content_type: str
     size: int
     timestamp: str
+    markdown_available: bool
 
     def save(self, base_path: Path) -> None:
         """Save metadata to JSON file in the upload folder"""

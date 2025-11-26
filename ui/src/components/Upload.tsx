@@ -1,17 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router'
+import { Link } from 'react-router';
+import type { UploadMetadata } from '../types';
 
 const MAX_FILE_SIZE_MB = 1;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const API_BASE_URL = 'http://localhost:8000';
-
-interface UploadMetadata {
-    id: string;
-    filename: string;
-    content_type: string;
-    size: number;
-    timestamp: string;
-}
 
 export default function Upload() {
     const [file, setFile] = useState<File | null>(null);
@@ -78,8 +71,8 @@ export default function Upload() {
         <div className='card'>
             <h1 className="text-3xl font-bold">Upload Data</h1>
             <p>Use the file browser below to select a PDF file for upload. The contents of the PDF will be converted to <a href="https://www.markdownguide.org/" target='_blank'>Markdown</a> format ready for analysis.</p>
-            <p>You can view a list of all uploaded texts available for processing on the <Link to="/extract">Data Extraction</Link> page.</p>
-            <div className="bg-white rounded-lg shadow p-6">
+            <p>You can view a list of all uploaded texts available for processing on the <Link to="/analysis">Analysis</Link> page.</p>
+            <div className="bg-white rounded-lg shadow p-6 max-w-xl">
                 <h2 className="text-xl font-semibold mb-4">Upload PDF Document</h2>
 
                 <div className="space-y-4">
@@ -118,7 +111,7 @@ export default function Upload() {
                                 className={`w-full py-2 px-4 rounded ${
                                     uploading 
                                         ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        : 'bg-blue-600 hover:bg-blue-700'
                                 }`}
                             >
                                 {uploading ? 'Uploading...' : 'Upload'}

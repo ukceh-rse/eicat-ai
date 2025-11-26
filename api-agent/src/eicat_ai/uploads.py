@@ -32,6 +32,7 @@ async def create_upload(
         content_type=file.content_type,
         size=len(content),
         timestamp=datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        markdown_available=False,
     )
 
     upload_metadata.save(data_path)

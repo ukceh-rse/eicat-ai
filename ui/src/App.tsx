@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router'
 import Upload from './components/Upload'
 import Naviagtion from './components/Navigation'
-import Extraction from './components/Extraction'
+import Analysis from './components/Analysis'
 import Home from './components/Home'
 import './App.css'
 
@@ -12,7 +12,7 @@ function App() {
       <div className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/extract" element={<Extraction />} />
+          <Route path="/analysis" element={<Analysis />} />
           <Route path="/upload" element={<Upload />} />
         </Routes>
       </div>
