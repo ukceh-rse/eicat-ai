@@ -5,6 +5,7 @@ export interface UploadMetadata {
   size: number;
   timestamp: string;
   markdown_available: boolean;
+  impacts_available: boolean;
 }
 
 export interface TaskStatus {
@@ -23,4 +24,19 @@ export interface Paper {
   content: string;
   references: string[];
   metadata: Record<string, any>;
+}
+
+export interface SpeciesNames {
+  scientific_name: string;
+  vernacular_names: string[];
+}
+
+export interface Impact {
+  alien_species: string;
+  mechanism: string;
+  category: string;
+  evidence: string;
+  confidence?: string;
+  justification: string;
+  impacted_species: string[];
 }

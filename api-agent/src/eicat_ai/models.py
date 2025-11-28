@@ -272,7 +272,8 @@ class UploadMetadata(BaseModel):
     content_type: str
     size: int
     timestamp: str
-    markdown_available: bool
+    markdown_available: bool = False
+    impacts_available: bool = False
 
     def save(self, base_path: Path) -> None:
         """Save metadata to JSON file in the upload folder"""
