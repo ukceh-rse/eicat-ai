@@ -428,3 +428,31 @@ async def get_species_used_for_extraction(
         return species
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading species info: {str(e)}")
+
+
+@analysis_router.post("/set-species/{upload_id}")
+async def set_species_for_analysis(
+    upload_id: str,
+    species: SpeciesNames,
+    data_path: Path = Depends(get_data_path)
+):
+    """Set the species information to be used for analysis"""
+    # Verify upload exists
+    metadata = UploadMetadata.load_by_id(upload_id, data_path)
+    if metadata is None:
+        raise HTTPException(status_code=404, detail="Upload not found")
+
+    # Get the upload folder path
+    file_folder = data_path / upload_id
+    species_path = file_folder / "species.json"
+
+    try:
+        # Save the species information using the built-in save method
+        species.save(str(species_path))
+        return {
+            "message": "Species information set successfully",
+            "upload_id": upload_id,
+            "species": species
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving species info: {str(e)}")

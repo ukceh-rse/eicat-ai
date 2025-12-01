@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from eicat_ai.uploads import uploads_router
-from eicat_ai.analysis import analysis_router
+from eicat_ai.routers.uploads import uploads_router
+from eicat_ai.routers.analysis import analysis_router
+from eicat_ai.routers.gbif import router as gbif_router
 
 app = FastAPI()
 app.include_router(uploads_router)
 app.include_router(analysis_router)
+app.include_router(gbif_router)
 
 app.add_middleware(
     CORSMiddleware,
