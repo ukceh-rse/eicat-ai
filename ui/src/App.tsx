@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router'
 import Upload from './components/Upload'
-import Naviagtion from './components/Navigation'
+import Navigation from './components/Navigation'
 import Analysis from './components/Analysis'
 import Home from './components/Home'
 import './App.css'
@@ -8,7 +8,7 @@ import './App.css'
 function App() {
   return (
     <BrowserRouter>
-      <Naviagtion />
+      <Navigation />
       <div className="main-content">
         <Routes>
           <Route path="/" element={<Home />} />

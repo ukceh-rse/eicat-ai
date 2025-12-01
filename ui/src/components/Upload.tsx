@@ -1,70 +1,44 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
-import type { UploadMetadata } from '../types';
+import { useUploadStore } from '../store/uploadStore';
 
 const MAX_FILE_SIZE_MB = 3;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const API_BASE_URL = 'http://localhost:8000';
 
 export default function Upload() {
-    const [file, setFile] = useState<File | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [uploading, setUploading] = useState<boolean>(false);
-    const [uploadResult, setUploadResult] = useState<UploadMetadata | null>(null);
+    const { 
+        uploadForm, 
+        setUploadForm, 
+        resetUploadForm, 
+        uploadFile 
+    } = useUploadStore()
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
-        setError(null);
-        setUploadResult(null);
+        
+        resetUploadForm();
 
         if (selectedFile) {
             if (selectedFile.type !== 'application/pdf') {
-                setError('Please select a PDF file.');
+                setUploadForm({ error: 'Please select a PDF file.' });
                 return;
             }
 
             if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
-                setError(`File size must be less than ${MAX_FILE_SIZE_MB}MB.`);
+                setUploadForm({ error: `File size must be less than ${MAX_FILE_SIZE_MB}MB.` });
                 return;
             }
 
-            setFile(selectedFile);
+            setUploadForm({ selectedFile });
         }
     };
 
     const handleUpload = async () => {
-        if (!file) return;
-
-        setUploading(true);
-        setError(null);
-        setUploadResult(null);
-
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch(`${API_BASE_URL}/uploads/`, {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || `Upload failed: ${response.statusText}`);
-            }
-
-            const result: UploadMetadata = await response.json();
-            setUploadResult(result);
-            setFile(null);
-            
-            // Reset the file input
-            const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-            if (fileInput) fileInput.value = '';
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Upload failed');
-        } finally {
-            setUploading(false);
-        }
+        if (!uploadForm.selectedFile) return;
+        await uploadFile(uploadForm.selectedFile);
+        
+        // Reset file input
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
     };
 
     return (
@@ -85,36 +59,36 @@ export default function Upload() {
 
                     <p className="file-size-hint">Maximum file size: {MAX_FILE_SIZE_MB}MB</p>
 
-                    {error && (
+                    {uploadForm.error && (
                         <div className="error-notification">
-                            <p className="error-text">{error}</p>
+                            <p className="error-text">{uploadForm.error}</p>
                         </div>
                     )}
 
-                    {uploadResult && (
+                    {uploadForm.uploadResult && (
                         <div className="success-notification">
                             <p className="success-text">File uploaded successfully!</p>
-                            <p className="success-detail">ID: {uploadResult.id}</p>
-                            <p className="success-detail">Size: {(uploadResult.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p className="success-detail">ID: {uploadForm.uploadResult.id}</p>
+                            <p className="success-detail">Size: {(uploadForm.uploadResult.size / 1024 / 1024).toFixed(2)} MB</p>
                         </div>
                     )}
 
-                    {file && !error && (
+                    {uploadForm.selectedFile && !uploadForm.error && (
                         <>
                             <div className="file-preview">
-                                <p className="file-name">{file.name}</p>
-                                <p className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                <p className="file-name">{uploadForm.selectedFile.name}</p>
+                                <p className="file-size">{(uploadForm.selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                             </div>
                             <button
                                 onClick={handleUpload}
-                                disabled={uploading}
+                                disabled={uploadForm.uploading}
                                 className={`button-upload ${
-                                    uploading 
+                                    uploadForm.uploading 
                                         ? 'button-upload-disabled' 
                                         : 'button-upload-enabled'
                                 }`}
                             >
-                                {uploading ? 'Uploading...' : 'Upload'}
+                                {uploadForm.uploading ? 'Uploading...' : 'Upload'}
                             </button>
                         </>
                     )}

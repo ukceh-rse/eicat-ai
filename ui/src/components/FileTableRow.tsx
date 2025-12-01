@@ -1,20 +1,20 @@
 import { FaTrash, FaBug, FaMarkdown } from 'react-icons/fa';
 import type { UploadMetadata } from '../types';
+import { API_ENDPOINTS } from '../config/api';
 
 interface FileTableRowProps {
   upload: UploadMetadata;
   onDelete: (uploadId: string, filename: string) => void;
   onConvertToMarkdown: (uploadId: string, filename: string) => void;
   onExtractImpacts: (uploadId: string, filename: string) => void;
-  onToggleMarkdown: (upload: UploadMetadata) => void;
-  onToggleImpacts: (upload: UploadMetadata) => void;
+  onToggleMarkdown: () => void;
+  onToggleImpacts: () => void;
   isConverting: boolean;
   isExtracting: boolean;
   isMarkdownExpanded: boolean;
   isImpactsExpanded: boolean;
   loadingMarkdown: boolean;
   loadingImpacts: boolean;
-  apiBaseUrl: string;
 }
 
 export default function FileTableRow({
@@ -30,7 +30,6 @@ export default function FileTableRow({
   isImpactsExpanded,
   loadingMarkdown,
   loadingImpacts,
-  apiBaseUrl,
 }: FileTableRowProps) {
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -52,7 +51,7 @@ export default function FileTableRow({
       <td>
         <div>
           <a
-            href={`${apiBaseUrl}/uploads/${upload.id}/download`}
+            href={API_ENDPOINTS.download(upload.id)}
             className="file-link"
             download
           >
@@ -83,7 +82,7 @@ export default function FileTableRow({
                     ) : (
                       <a
                         className="toggle-link"
-                        onClick={() => onToggleMarkdown(upload)}
+                        onClick={() => onToggleMarkdown()}
                       >
                         {isMarkdownExpanded ? "Hide" : "Show"}
                       </a>
@@ -100,7 +99,7 @@ export default function FileTableRow({
                     ) : (
                       <a
                         className="toggle-link"
-                        onClick={() => onToggleImpacts(upload)}
+                        onClick={() => onToggleImpacts()}
                       >
                         {isImpactsExpanded ? "Hide" : "Show"}
                       </a>

@@ -1,53 +1,27 @@
 import { Link } from 'react-router';
-import { useState, useEffect } from 'react';
-import type { UploadMetadata } from '../types';
+import { useEffect } from 'react';
+import { useUploadStore } from '../store/uploadStore';
 import FileTableEntry from './FileTableEntry';
 
-const API_BASE_URL = 'http://localhost:8000';
-
 export default function Analysis() {
-  const [uploads, setUploads] = useState<UploadMetadata[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchUploads = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/uploads/`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      const data = await response.json()
-      setUploads(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch uploads')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    uploads,
+    loading,
+    error,
+    fetchUploads,
+    deleteUpload,
+    setError
+  } = useUploadStore()
 
   useEffect(() => {
     fetchUploads()
-  }, [])
+  }, [fetchUploads])
 
   const handleDelete = async (uploadId: string, filename: string) => {
     if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
       return
     }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/uploads/${uploadId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      // Remove the deleted upload from the state
-      setUploads(uploads.filter(upload => upload.id !== uploadId))
-    } catch (err) {
-      alert(`Failed to delete file: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    }
+    await deleteUpload(uploadId)
   }
 
   if (loading) {
@@ -65,6 +39,15 @@ export default function Analysis() {
         <h1 className="page-title">Analysis</h1>
         <p className="error-message">Error: {error}</p>
         <p>Please try refreshing the page or check your connection.</p>
+        <button 
+          onClick={() => {
+            setError(null)
+            fetchUploads()
+          }}
+          className="button-primary"
+        >
+          Retry
+        </button>
       </div>
     )
   }
@@ -97,8 +80,6 @@ export default function Analysis() {
                   key={upload.id}
                   upload={upload}
                   onDelete={handleDelete}
-                  onUploadUpdated={fetchUploads}
-                  apiBaseUrl={API_BASE_URL}
                 />
               ))}
             </tbody>
