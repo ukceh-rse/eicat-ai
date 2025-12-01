@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { UploadMetadata } from '../types';
 
-const MAX_FILE_SIZE_MB = 1;
+const MAX_FILE_SIZE_MB = 3;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -69,49 +69,49 @@ export default function Upload() {
 
     return (
         <div className='card'>
-            <h1 className="text-3xl font-bold">Upload Data</h1>
+            <h1 className="page-title">Upload Data</h1>
             <p>Use the file browser below to select a PDF file for upload. The contents of the PDF will be converted to <a href="https://www.markdownguide.org/" target='_blank'>Markdown</a> format ready for analysis.</p>
-            <p>You can view a list of all uploaded texts available for processing on the <Link to="/analysis">Analysis</Link> page.</p>
-            <div className="bg-white rounded-lg shadow p-6 max-w-xl">
-                <h2 className="text-xl font-semibold mb-4">Upload PDF Document</h2>
+            <p>You can view a list of all uploaded texts available for processing on the <Link to="/analysis" className="link-primary">Analysis</Link> page.</p>
+            <div className="upload-container">
+                <h2 className="upload-title">Upload PDF Document</h2>
 
-                <div className="space-y-4">
+                <div className="upload-form">
                     <input
                         type="file"
                         accept=".pdf"
                         onChange={handleFileSelect}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        className="file-input"
                     />
 
-                    <p className="text-xs text-gray-500">Maximum file size: {MAX_FILE_SIZE_MB}MB</p>
+                    <p className="file-size-hint">Maximum file size: {MAX_FILE_SIZE_MB}MB</p>
 
                     {error && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded">
-                            <p className="text-sm text-red-600">{error}</p>
+                        <div className="error-notification">
+                            <p className="error-text">{error}</p>
                         </div>
                     )}
 
                     {uploadResult && (
-                        <div className="p-3 bg-green-50 border border-green-200 rounded">
-                            <p className="text-sm text-green-600 font-medium">File uploaded successfully!</p>
-                            <p className="text-xs text-green-600">ID: {uploadResult.id}</p>
-                            <p className="text-xs text-green-600">Size: {(uploadResult.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <div className="success-notification">
+                            <p className="success-text">File uploaded successfully!</p>
+                            <p className="success-detail">ID: {uploadResult.id}</p>
+                            <p className="success-detail">Size: {(uploadResult.size / 1024 / 1024).toFixed(2)} MB</p>
                         </div>
                     )}
 
                     {file && !error && (
                         <>
-                            <div className="p-3 bg-gray-50 rounded border">
-                                <p className="text-sm font-medium">{file.name}</p>
-                                <p className="text-xs text-gray-600">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <div className="file-preview">
+                                <p className="file-name">{file.name}</p>
+                                <p className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                             </div>
                             <button
                                 onClick={handleUpload}
                                 disabled={uploading}
-                                className={`w-full py-2 px-4 rounded ${
+                                className={`button-upload ${
                                     uploading 
-                                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                                        : 'bg-blue-600 hover:bg-blue-700'
+                                        ? 'button-upload-disabled' 
+                                        : 'button-upload-enabled'
                                 }`}
                             >
                                 {uploading ? 'Uploading...' : 'Upload'}
