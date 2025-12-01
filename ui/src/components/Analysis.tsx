@@ -1,26 +1,17 @@
 import { Link } from 'react-router';
 import { useEffect } from 'react';
 import { useUploadStore } from '../store/uploadStore';
-import FileTableEntry from './FileTableEntry';
+import FileTableRow from './FileTableRow';
 
 export default function Analysis() {
-  const {
-    uploads,
-    loading,
-    error,
-    fetchUploads,
-    deleteUpload,
-    setError
-  } = useUploadStore()
+  const { uploads, loading, error, fetchUploads, deleteUpload, setError } = useUploadStore()
 
   useEffect(() => {
     fetchUploads()
   }, [fetchUploads])
 
   const handleDelete = async (uploadId: string, filename: string) => {
-    if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
-      return
-    }
+    if (!confirm(`Are you sure you want to delete "${filename}"?`)) return
     await deleteUpload(uploadId)
   }
 
@@ -60,9 +51,7 @@ export default function Analysis() {
       {uploads.length === 0 ? (
         <p>
           No uploaded texts found. Please first upload a text on the{' '}
-          <Link to="/upload" className="link-primary">
-            Upload
-          </Link>{' '}
+          <Link to="/upload" className="link-primary">Upload</Link>{' '}
           page.
         </p>
       ) : (
@@ -76,9 +65,9 @@ export default function Analysis() {
             </thead>
             <tbody>
               {uploads.map((upload) => (
-                <FileTableEntry
+                <FileTableRow
                   key={upload.id}
-                  upload={upload}
+                  uploadId={upload.id}
                   onDelete={handleDelete}
                 />
               ))}

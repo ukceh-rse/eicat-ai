@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, subscribeWithSelector } from 'zustand/middleware'
 import type { UploadMetadata, Paper, Impact, TaskStatus } from '../types'
 import { API_ENDPOINTS } from '../config/api'
 
@@ -8,35 +8,31 @@ const SPECIES_NAMES = {
   "vernacular_names": ["house sparrow"]
 }
 
-interface TaskState {
-  isConverting: boolean
-  isExtracting: boolean
-  convertingTaskId: string | null
-  extractingTaskId: string | null
-}
-
-interface LoadingState {
-  loadingMarkdown: boolean
-  loadingImpacts: boolean
-}
-
 interface UploadStore {
-  // Core data
+  // === CORE STATE ===
   uploads: UploadMetadata[]
   loading: boolean
   error: string | null
   
-  // Task states per upload
-  taskStates: Record<string, TaskState>
+  // === UI STATE (per upload ID) ===
+  taskStates: Record<string, {
+    isConverting: boolean
+    isExtracting: boolean
+    convertingTaskId: string | null
+    extractingTaskId: string | null
+  }>
   
-  // Loading states per upload
-  loadingStates: Record<string, LoadingState>
+  loadingStates: Record<string, {
+    loadingMarkdown: boolean
+    loadingImpacts: boolean
+  }>
   
-  // Expanded content per upload
-  expandedMarkdown: Record<string, Paper | null>
-  expandedImpacts: Record<string, Impact[] | null>
+  expandedContent: Record<string, {
+    markdown: Paper | null
+    impacts: Impact[] | null
+  }>
   
-  // Upload form state
+  // === UPLOAD FORM STATE ===
   uploadForm: {
     selectedFile: File | null
     uploading: boolean
@@ -44,37 +40,25 @@ interface UploadStore {
     uploadResult: UploadMetadata | null
   }
   
-  // Actions
-  setUploads: (uploads: UploadMetadata[]) => void
-  setLoading: (loading: boolean) => void
+  // === BASIC ACTIONS ===
   setError: (error: string | null) => void
-  
-  // Task actions
-  setTaskState: (uploadId: string, taskState: Partial<TaskState>) => void
-  getTaskState: (uploadId: string) => TaskState
-  
-  // Loading actions
-  setLoadingState: (uploadId: string, loadingState: Partial<LoadingState>) => void
-  getLoadingState: (uploadId: string) => LoadingState
-  
-  // Expanded content actions
-  setExpandedMarkdown: (uploadId: string, paper: Paper | null) => void
-  setExpandedImpacts: (uploadId: string, impacts: Impact[] | null) => void
-  
-  // Upload form actions
-  setUploadForm: (formState: Partial<UploadStore['uploadForm']>) => void
   resetUploadForm: () => void
   
-  // Async actions
+  // === ASYNC ACTIONS ===
   fetchUploads: () => Promise<void>
   deleteUpload: (uploadId: string) => Promise<void>
-  convertToMarkdown: (uploadId: string, filename: string) => Promise<void>
-  extractImpacts: (uploadId: string, filename: string) => Promise<void>
-  loadMarkdown: (uploadId: string) => Promise<void>
-  loadImpacts: (uploadId: string) => Promise<void>
   uploadFile: (file: File) => Promise<void>
   
-  // Task polling
+  // === UPLOAD-SPECIFIC ACTIONS ===
+  convertToMarkdown: (uploadId: string, filename: string) => Promise<void>
+  extractImpacts: (uploadId: string, filename: string) => Promise<void>
+  toggleMarkdown: (uploadId: string) => Promise<void>
+  toggleImpacts: (uploadId: string) => Promise<void>
+  
+  // === FILE UPLOAD ACTIONS ===
+  selectFile: (file: File | null) => void
+  
+  // === TASK POLLING ===
   startTaskPolling: () => void
   stopTaskPolling: () => void
 }
@@ -83,15 +67,14 @@ let pollInterval: number | null = null
 
 export const useUploadStore = create<UploadStore>()(
   devtools(
-    (set, get) => ({
-      // Initial state
+    subscribeWithSelector((set, get) => ({
+      // === INITIAL STATE ===
       uploads: [],
       loading: false,
       error: null,
       taskStates: {},
       loadingStates: {},
-      expandedMarkdown: {},
-      expandedImpacts: {},
+      expandedContent: {},
       uploadForm: {
         selectedFile: null,
         uploading: false,
@@ -99,78 +82,56 @@ export const useUploadStore = create<UploadStore>()(
         uploadResult: null
       },
       
-      // Basic setters
-      setUploads: (uploads) => set({ uploads }),
-      setLoading: (loading) => set({ loading }),
+      // === BASIC ACTIONS ===
       setError: (error) => set({ error }),
       
-      // Task state management
-      setTaskState: (uploadId, taskState) => 
-        set((state) => ({
-          taskStates: {
-            ...state.taskStates,
-            [uploadId]: { ...get().getTaskState(uploadId), ...taskState }
-          }
-        })),
+      resetUploadForm: () => set({
+        uploadForm: {
+          selectedFile: null,
+          uploading: false,
+          error: null,
+          uploadResult: null
+        }
+      }),
       
-      getTaskState: (uploadId) => 
-        get().taskStates[uploadId] || {
-          isConverting: false,
-          isExtracting: false,
-          convertingTaskId: null,
-          extractingTaskId: null
-        },
+      selectFile: (file) => {
+        if (!file) {
+          get().resetUploadForm()
+          return
+        }
+        
+        const MAX_FILE_SIZE_MB = 3
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+        
+        if (file.type !== 'application/pdf') {
+          set(state => ({
+            uploadForm: { ...state.uploadForm, error: 'Please select a PDF file.', selectedFile: null }
+          }))
+          return
+        }
+        
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          set(state => ({
+            uploadForm: { 
+              ...state.uploadForm, 
+              error: `File size must be less than ${MAX_FILE_SIZE_MB}MB.`, 
+              selectedFile: null 
+            }
+          }))
+          return
+        }
+        
+        set(state => ({
+          uploadForm: { ...state.uploadForm, selectedFile: file, error: null }
+        }))
+      },
       
-      // Loading state management
-      setLoadingState: (uploadId, loadingState) =>
-        set((state) => ({
-          loadingStates: {
-            ...state.loadingStates,
-            [uploadId]: { ...get().getLoadingState(uploadId), ...loadingState }
-          }
-        })),
-      
-      getLoadingState: (uploadId) =>
-        get().loadingStates[uploadId] || {
-          loadingMarkdown: false,
-          loadingImpacts: false
-        },
-      
-      // Expanded content management
-      setExpandedMarkdown: (uploadId, paper) =>
-        set((state) => ({
-          expandedMarkdown: { ...state.expandedMarkdown, [uploadId]: paper }
-        })),
-      
-      setExpandedImpacts: (uploadId, impacts) =>
-        set((state) => ({
-          expandedImpacts: { ...state.expandedImpacts, [uploadId]: impacts }
-        })),
-      
-      // Upload form management
-      setUploadForm: (formState) =>
-        set((state) => ({
-          uploadForm: { ...state.uploadForm, ...formState }
-        })),
-      
-      resetUploadForm: () =>
-        set({
-          uploadForm: {
-            selectedFile: null,
-            uploading: false,
-            error: null,
-            uploadResult: null
-          }
-        }),
-      
-      // Async actions
+      // === ASYNC ACTIONS ===
       fetchUploads: async () => {
         set({ loading: true, error: null })
         try {
           const response = await fetch(API_ENDPOINTS.uploads)
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
           const data = await response.json()
           set({ uploads: data, loading: false })
         } catch (err) {
@@ -181,14 +142,21 @@ export const useUploadStore = create<UploadStore>()(
       
       deleteUpload: async (uploadId) => {
         try {
-          const response = await fetch(API_ENDPOINTS.upload(uploadId), {
-            method: 'DELETE',
-          })
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          set((state) => ({
-            uploads: state.uploads.filter(upload => upload.id !== uploadId)
+          const response = await fetch(API_ENDPOINTS.upload(uploadId), { method: 'DELETE' })
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+          
+          set(state => ({
+            uploads: state.uploads.filter(upload => upload.id !== uploadId),
+            // Clean up related state
+            taskStates: Object.fromEntries(
+              Object.entries(state.taskStates).filter(([id]) => id !== uploadId)
+            ),
+            loadingStates: Object.fromEntries(
+              Object.entries(state.loadingStates).filter(([id]) => id !== uploadId)
+            ),
+            expandedContent: Object.fromEntries(
+              Object.entries(state.expandedContent).filter(([id]) => id !== uploadId)
+            )
           }))
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Failed to delete upload'
@@ -196,108 +164,8 @@ export const useUploadStore = create<UploadStore>()(
         }
       },
       
-      convertToMarkdown: async (uploadId, filename) => {
-        if (!confirm(`Convert "${filename}" to markdown? This may take a few minutes.`)) {
-          return
-        }
-        
-        try {
-          const response = await fetch(API_ENDPOINTS.toMarkdown(uploadId), {
-            method: 'POST',
-          })
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          const result = await response.json()
-          
-          get().setTaskState(uploadId, {
-            isConverting: true,
-            convertingTaskId: result.task_id
-          })
-          
-          get().startTaskPolling()
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to start conversion'
-          alert(errorMessage)
-        }
-      },
-      
-      extractImpacts: async (uploadId, filename) => {
-        if (!confirm(`Extract impacts from "${filename}"? This may take a few minutes.`)) {
-          return
-        }
-        
-        try {
-          const response = await fetch(API_ENDPOINTS.extractImpacts(uploadId), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(SPECIES_NAMES),
-          })
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          const result = await response.json()
-          
-          get().setTaskState(uploadId, {
-            isExtracting: true,
-            extractingTaskId: result.task_id
-          })
-          
-          get().startTaskPolling()
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to start impact extraction'
-          alert(errorMessage)
-        }
-      },
-      
-      loadMarkdown: async (uploadId) => {
-        const currentPaper = get().expandedMarkdown[uploadId]
-        if (currentPaper) {
-          get().setExpandedMarkdown(uploadId, null)
-          return
-        }
-        
-        get().setLoadingState(uploadId, { loadingMarkdown: true })
-        try {
-          const response = await fetch(API_ENDPOINTS.getMarkdown(uploadId))
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          const paper: Paper = await response.json()
-          get().setExpandedMarkdown(uploadId, paper)
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to load markdown'
-          alert(errorMessage)
-        } finally {
-          get().setLoadingState(uploadId, { loadingMarkdown: false })
-        }
-      },
-      
-      loadImpacts: async (uploadId) => {
-        const currentImpacts = get().expandedImpacts[uploadId]
-        if (currentImpacts) {
-          get().setExpandedImpacts(uploadId, null)
-          return
-        }
-        
-        get().setLoadingState(uploadId, { loadingImpacts: true })
-        try {
-          const response = await fetch(API_ENDPOINTS.getImpacts(uploadId))
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          const impacts: Impact[] = await response.json()
-          get().setExpandedImpacts(uploadId, impacts)
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to load impacts'
-          alert(errorMessage)
-        } finally {
-          get().setLoadingState(uploadId, { loadingImpacts: false })
-        }
-      },
-      
       uploadFile: async (file) => {
-        set((state) => ({
+        set(state => ({
           uploadForm: { ...state.uploadForm, uploading: true, error: null, uploadResult: null }
         }))
         
@@ -316,7 +184,7 @@ export const useUploadStore = create<UploadStore>()(
           }
           
           const result: UploadMetadata = await response.json()
-          set((state) => ({
+          set(state => ({
             uploadForm: {
               ...state.uploadForm,
               uploading: false,
@@ -326,20 +194,173 @@ export const useUploadStore = create<UploadStore>()(
           }))
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Upload failed'
-          set((state) => ({
+          set(state => ({
             uploadForm: { ...state.uploadForm, uploading: false, error: errorMessage }
           }))
         }
       },
       
-      // Task polling
+      // === UPLOAD-SPECIFIC ACTIONS ===
+      convertToMarkdown: async (uploadId, filename) => {
+        if (!confirm(`Convert "${filename}" to markdown? This may take a few minutes.`)) return
+        
+        try {
+          const response = await fetch(API_ENDPOINTS.toMarkdown(uploadId), { method: 'POST' })
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+          
+          const result = await response.json()
+          set(state => ({
+            taskStates: {
+              ...state.taskStates,
+              [uploadId]: {
+                ...state.taskStates[uploadId],
+                isConverting: true,
+                convertingTaskId: result.task_id
+              }
+            }
+          }))
+          
+          get().startTaskPolling()
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to start conversion'
+          alert(errorMessage)
+        }
+      },
+      
+      extractImpacts: async (uploadId, filename) => {
+        if (!confirm(`Extract impacts from "${filename}"? This may take a few minutes.`)) return
+        
+        try {
+          const response = await fetch(API_ENDPOINTS.extractImpacts(uploadId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(SPECIES_NAMES),
+          })
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+          
+          const result = await response.json()
+          set(state => ({
+            taskStates: {
+              ...state.taskStates,
+              [uploadId]: {
+                ...state.taskStates[uploadId],
+                isExtracting: true,
+                extractingTaskId: result.task_id
+              }
+            }
+          }))
+          
+          get().startTaskPolling()
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to start impact extraction'
+          alert(errorMessage)
+        }
+      },
+      
+      toggleMarkdown: async (uploadId) => {
+        const current = get().expandedContent[uploadId]?.markdown
+        if (current) {
+          // Collapse
+          set(state => ({
+            expandedContent: {
+              ...state.expandedContent,
+              [uploadId]: { ...state.expandedContent[uploadId], markdown: null }
+            }
+          }))
+          return
+        }
+        
+        // Expand - load data
+        set(state => ({
+          loadingStates: {
+            ...state.loadingStates,
+            [uploadId]: { ...state.loadingStates[uploadId], loadingMarkdown: true }
+          }
+        }))
+        
+        try {
+          const response = await fetch(API_ENDPOINTS.getMarkdown(uploadId))
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+          
+          const paper: Paper = await response.json()
+          set(state => ({
+            expandedContent: {
+              ...state.expandedContent,
+              [uploadId]: { ...state.expandedContent[uploadId], markdown: paper }
+            },
+            loadingStates: {
+              ...state.loadingStates,
+              [uploadId]: { ...state.loadingStates[uploadId], loadingMarkdown: false }
+            }
+          }))
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load markdown'
+          alert(errorMessage)
+          set(state => ({
+            loadingStates: {
+              ...state.loadingStates,
+              [uploadId]: { ...state.loadingStates[uploadId], loadingMarkdown: false }
+            }
+          }))
+        }
+      },
+      
+      toggleImpacts: async (uploadId) => {
+        const current = get().expandedContent[uploadId]?.impacts
+        if (current) {
+          // Collapse
+          set(state => ({
+            expandedContent: {
+              ...state.expandedContent,
+              [uploadId]: { ...state.expandedContent[uploadId], impacts: null }
+            }
+          }))
+          return
+        }
+        
+        // Expand - load data
+        set(state => ({
+          loadingStates: {
+            ...state.loadingStates,
+            [uploadId]: { ...state.loadingStates[uploadId], loadingImpacts: true }
+          }
+        }))
+        
+        try {
+          const response = await fetch(API_ENDPOINTS.getImpacts(uploadId))
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+          
+          const impacts: Impact[] = await response.json()
+          set(state => ({
+            expandedContent: {
+              ...state.expandedContent,
+              [uploadId]: { ...state.expandedContent[uploadId], impacts }
+            },
+            loadingStates: {
+              ...state.loadingStates,
+              [uploadId]: { ...state.loadingStates[uploadId], loadingImpacts: false }
+            }
+          }))
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load impacts'
+          alert(errorMessage)
+          set(state => ({
+            loadingStates: {
+              ...state.loadingStates,
+              [uploadId]: { ...state.loadingStates[uploadId], loadingImpacts: false }
+            }
+          }))
+        }
+      },
+      
+      // === TASK POLLING ===
       startTaskPolling: () => {
         if (pollInterval) return
         
         pollInterval = setInterval(async () => {
           const state = get()
           const activeTasks = Object.entries(state.taskStates).filter(([_, taskState]) => 
-            taskState.isConverting || taskState.isExtracting
+            taskState?.isConverting || taskState?.isExtracting
           )
           
           if (activeTasks.length === 0) {
@@ -355,10 +376,20 @@ export const useUploadStore = create<UploadStore>()(
                 if (response.ok) {
                   const taskStatus: TaskStatus = await response.json()
                   if (taskStatus.status === 'completed') {
-                    get().setTaskState(uploadId, { isConverting: false, convertingTaskId: null })
-                    await get().fetchUploads() // Refresh uploads
+                    set(state => ({
+                      taskStates: {
+                        ...state.taskStates,
+                        [uploadId]: { ...taskState, isConverting: false, convertingTaskId: null }
+                      }
+                    }))
+                    await get().fetchUploads()
                   } else if (taskStatus.status === 'failed') {
-                    get().setTaskState(uploadId, { isConverting: false, convertingTaskId: null })
+                    set(state => ({
+                      taskStates: {
+                        ...state.taskStates,
+                        [uploadId]: { ...taskState, isConverting: false, convertingTaskId: null }
+                      }
+                    }))
                     alert(`Conversion failed: ${taskStatus.error || 'Unknown error'}`)
                   }
                 }
@@ -370,10 +401,20 @@ export const useUploadStore = create<UploadStore>()(
                 if (response.ok) {
                   const taskStatus: TaskStatus = await response.json()
                   if (taskStatus.status === 'completed') {
-                    get().setTaskState(uploadId, { isExtracting: false, extractingTaskId: null })
-                    await get().fetchUploads() // Refresh uploads
+                    set(state => ({
+                      taskStates: {
+                        ...state.taskStates,
+                        [uploadId]: { ...taskState, isExtracting: false, extractingTaskId: null }
+                      }
+                    }))
+                    await get().fetchUploads()
                   } else if (taskStatus.status === 'failed') {
-                    get().setTaskState(uploadId, { isExtracting: false, extractingTaskId: null })
+                    set(state => ({
+                      taskStates: {
+                        ...state.taskStates,
+                        [uploadId]: { ...taskState, isExtracting: false, extractingTaskId: null }
+                      }
+                    }))
                     alert(`Impact extraction failed: ${taskStatus.error || 'Unknown error'}`)
                   }
                 }
@@ -391,7 +432,22 @@ export const useUploadStore = create<UploadStore>()(
           pollInterval = null
         }
       }
-    }),
+    })),
     { name: 'upload-store' }
   )
 )
+
+// === SMART SELECTORS ===
+// These can be used to subscribe to specific parts of state
+
+export const useUploadById = (uploadId: string) => 
+  useUploadStore(state => state.uploads.find(upload => upload.id === uploadId))
+
+export const useTaskState = (uploadId: string) => 
+  useUploadStore(state => state.taskStates[uploadId])
+
+export const useLoadingState = (uploadId: string) => 
+  useUploadStore(state => state.loadingStates[uploadId])
+
+export const useExpandedContent = (uploadId: string) => 
+  useUploadStore(state => state.expandedContent[uploadId])
