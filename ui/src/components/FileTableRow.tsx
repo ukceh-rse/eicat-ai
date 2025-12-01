@@ -1,8 +1,11 @@
-import { FaTrash, FaBug, FaMarkdown } from 'react-icons/fa';
-import { useUploadById, useTaskState, useLoadingState, useExpandedContent, useUploadStore } from '../store/uploadStore';
+import { FaTrash, FaBug, FaMarkdown, FaSearch } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { useUploadById, useTaskState, useLoadingState, useExpandedContent, useSpeciesState, useUploadStore } from '../store/uploadStore';
 import { API_ENDPOINTS } from '../config/api';
 import MarkdownExpandedRow from './MarkdownExpandedRow';
 import ImpactsExpandedRow from './ImpactsExpandedRow';
+import SpeciesSearchModal from './SpeciesSearchModal';
+import type { SpeciesNames } from '../types';
 
 interface FileTableRowProps {
   uploadId: string;
@@ -10,6 +13,9 @@ interface FileTableRowProps {
 }
 
 export default function FileTableRow({ uploadId, onDelete }: FileTableRowProps) {
+  // Local state for species modal
+  const [showSpeciesModal, setShowSpeciesModal] = useState(false);
+  
   // Direct store subscriptions - only re-renders when this upload's data changes
   const upload = useUploadById(uploadId)
   const taskState = useTaskState(uploadId) || {
@@ -26,9 +32,26 @@ export default function FileTableRow({ uploadId, onDelete }: FileTableRowProps) 
     markdown: null,
     impacts: null
   }
+  const speciesState = useSpeciesState(uploadId) || {
+    selectedSpecies: null,
+    loadingSpecies: false,
+    hasAttemptedLoad: false
+  }
   
   // Store actions
-  const { convertToMarkdown, extractImpacts, toggleMarkdown, toggleImpacts } = useUploadStore()
+  const { convertToMarkdown, extractImpacts, toggleMarkdown, toggleImpacts, setSpeciesForUpload, loadSpeciesForUpload } = useUploadStore()
+
+  // Load species data when component mounts - only attempt once
+  useEffect(() => {
+    if (upload && !speciesState.hasAttemptedLoad) {
+      loadSpeciesForUpload(uploadId);
+    }
+  }, [upload, uploadId, loadSpeciesForUpload, speciesState.hasAttemptedLoad]);
+
+  const handleSpeciesSelected = async (species: SpeciesNames) => {
+    await setSpeciesForUpload(uploadId, species);
+    setShowSpeciesModal(false);
+  };
 
   if (!upload) return null
 
@@ -71,6 +94,21 @@ export default function FileTableRow({ uploadId, onDelete }: FileTableRowProps) 
                   <td className="file-detail-label">Uploaded:</td>
                   <td>{formatTimestamp(upload.timestamp).date}, {formatTimestamp(upload.timestamp).time}</td>
                 </tr>
+                {speciesState.selectedSpecies && (
+                  <tr>
+                    <td className="file-detail-label">Species:</td>
+                    <td>
+                      <div className="species-info">
+                        <span className="scientific-name">{speciesState.selectedSpecies.scientific_name}</span>
+                        {speciesState.selectedSpecies.vernacular_names.length > 0 && (
+                          <span className="vernacular-names">
+                            ({speciesState.selectedSpecies.vernacular_names.join(', ')})
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {upload.markdown_available && (
                   <tr>
                     <td className="file-detail-label">Markdown:</td>
@@ -121,31 +159,56 @@ export default function FileTableRow({ uploadId, onDelete }: FileTableRowProps) 
               disabled={upload.markdown_available || taskState.isConverting}
             >
               {taskState.isConverting ? (
-                <div className="spinner spinner-yellow"></div>
+                <div className="spinner"></div>
               ) : (
                 <FaMarkdown className="action-icon" />
               )}
             </button>
 
             <button
-              className={`action-button-extract ${upload.markdown_available && !taskState.isExtracting
+              className={`action-button-species ${speciesState.selectedSpecies 
+                  ? 'action-button-species-selected'
+                  : 'action-button-species-enabled'
+                }`}
+              title={
+                speciesState.loadingSpecies
+                  ? "Loading species information..."
+                  : speciesState.selectedSpecies
+                    ? `Species selected: ${speciesState.selectedSpecies.scientific_name}`
+                    : "Select Species for Analysis"
+              }
+              onClick={() => setShowSpeciesModal(true)}
+              disabled={speciesState.loadingSpecies}
+            >
+              {speciesState.loadingSpecies ? (
+                <div className="spinner"></div>
+              ) : (
+                <FaSearch className="action-icon" />
+              )}
+            </button>
+
+            <button
+              className={`action-button-extract ${
+                upload.markdown_available && speciesState.selectedSpecies && !taskState.isExtracting
                   ? 'action-button-extract-enabled'
                   : 'action-button-extract-disabled'
                 }`}
               title={
                 !upload.markdown_available
                   ? "Markdown conversion required before data extraction"
-                  : taskState.isExtracting
-                    ? "Extracting impacts..."
-                    : upload.impacts_available
-                      ? "Extract Data (Already Extracted)"
-                      : "Extract Data"
+                  : !speciesState.selectedSpecies
+                    ? "Species selection required before data extraction"
+                    : taskState.isExtracting
+                      ? "Extracting impacts..."
+                      : upload.impacts_available
+                        ? "Extract Data (Already Extracted)"
+                        : "Extract Data"
               }
               onClick={() => extractImpacts(uploadId, upload.filename)}
-              disabled={!upload.markdown_available || taskState.isExtracting}
+              disabled={!upload.markdown_available || !speciesState.selectedSpecies || taskState.isExtracting}
             >
               {taskState.isExtracting ? (
-                <div className="spinner spinner-indigo"></div>
+                <div className="spinner"></div>
               ) : (
                 <FaBug className="action-icon" />
               )}
@@ -169,6 +232,14 @@ export default function FileTableRow({ uploadId, onDelete }: FileTableRowProps) 
       {expandedContent.impacts && (
         <ImpactsExpandedRow uploadId={uploadId} impacts={expandedContent.impacts} />
       )}
+      
+      {/* Species Search Modal */}
+      <SpeciesSearchModal
+        isOpen={showSpeciesModal}
+        onClose={() => setShowSpeciesModal(false)}
+        onSpeciesSelected={handleSpeciesSelected}
+        currentSpecies={speciesState.selectedSpecies}
+      />
     </>
   )
 }

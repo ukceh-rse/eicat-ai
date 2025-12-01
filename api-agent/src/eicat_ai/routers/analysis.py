@@ -11,6 +11,8 @@ from eicat_ai.agents import paper_agent, data_extraction_agent
 
 analysis_router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
+AI_MODEL = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
+
 task_status: Dict[str, Dict] = {}
 
 
@@ -54,9 +56,7 @@ async def background_convert_pdf(upload_id: str, task_id: str, data_path: Path):
             "timestamp": datetime.now().isoformat(),
         }
 
-        model: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
-
-        agent: Agent[None, Paper] = paper_agent(model)
+        agent: Agent[None, Paper] = paper_agent(AI_MODEL)
         paper: Paper = await pdf_to_markdown(agent, str(file_path))
         
         # Ensure metadata is initialized
@@ -64,7 +64,7 @@ async def background_convert_pdf(upload_id: str, task_id: str, data_path: Path):
             paper.metadata = {}
         
         paper.metadata["timestamp"] = datetime.now().isoformat()
-        paper.metadata["model"] = model
+        paper.metadata["model"] = AI_MODEL
 
         paper.save(str(file_folder / "converted.json"))
 
@@ -209,7 +209,7 @@ async def list_all_tasks():
     }
 
 
-async def background_extract_impacts(upload_id: str, task_id: str, data_path: Path, species: SpeciesNames):
+async def background_extract_impacts(upload_id: str, task_id: str, data_path: Path):
     """Background task to extract impacts from a converted paper"""
     try:
         task_status[task_id] = {
@@ -230,12 +230,39 @@ async def background_extract_impacts(upload_id: str, task_id: str, data_path: Pa
 
         file_folder = data_path / upload_id
         converted_path = file_folder / "converted.json"
+        species_path = file_folder / "species.json"
 
         # Check if paper has been converted to markdown
         if not converted_path.exists():
             task_status[task_id] = {
                 "status": "failed",
                 "error": "Paper not converted to markdown. Please convert first.",
+                "timestamp": datetime.now().isoformat(),
+            }
+            return
+
+        # Check if species information exists
+        if not species_path.exists():
+            task_status[task_id] = {
+                "status": "failed",
+                "error": "Species information not found. Please set species information first using /set-species endpoint.",
+                "timestamp": datetime.now().isoformat(),
+            }
+            return
+
+        task_status[task_id] = {
+            "status": "processing",
+            "progress": "Loading species information...",
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        # Load the species information
+        try:
+            species = SpeciesNames.load(str(species_path))
+        except Exception as e:
+            task_status[task_id] = {
+                "status": "failed",
+                "error": f"Error loading species information: {str(e)}",
                 "timestamp": datetime.now().isoformat(),
             }
             return
@@ -265,18 +292,12 @@ async def background_extract_impacts(upload_id: str, task_id: str, data_path: Pa
             "timestamp": datetime.now().isoformat(),
         }
 
-        model: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
-
-        agent: Agent[Paper, List[Impact]] = data_extraction_agent(model)
+        agent: Agent[Paper, List[Impact]] = data_extraction_agent(AI_MODEL)
         impacts: List[Impact] = await extract_impacts(agent, paper, species)
 
         # Save impacts to CSV
         impacts_csv_path = file_folder / "impacts.csv"
         Impact.save_to_csv(impacts, str(impacts_csv_path))
-
-        # Save species information used for extraction
-        species_path = file_folder / "species.json"
-        species.save(str(species_path))
 
         # Update metadata to indicate impacts are available
         metadata.impacts_available = True
@@ -301,11 +322,10 @@ async def background_extract_impacts(upload_id: str, task_id: str, data_path: Pa
 @analysis_router.post("/extract-impacts/{upload_id}")
 async def start_impact_extraction(
     upload_id: str,
-    species: SpeciesNames,
     background_tasks: BackgroundTasks,
     data_path: Path = Depends(get_data_path),
 ):
-    """Start impact extraction in background"""
+    """Start impact extraction in background using species information from datapath"""
     # Verify upload exists
     metadata = UploadMetadata.load_by_id(upload_id, data_path)
     if metadata is None:
@@ -313,12 +333,20 @@ async def start_impact_extraction(
 
     file_folder = data_path / upload_id
     converted_path = file_folder / "converted.json"
+    species_path = file_folder / "species.json"
     
     # Check if paper has been converted to markdown
     if not converted_path.exists():
         raise HTTPException(
             status_code=400, 
             detail="Paper not converted to markdown. Please convert first."
+        )
+    
+    # Check if species information exists
+    if not species_path.exists():
+        raise HTTPException(
+            status_code=400,
+            detail="Species information not found. Please set species information first using /set-species endpoint."
         )
 
     # Create task
@@ -330,14 +358,14 @@ async def start_impact_extraction(
         "timestamp": datetime.now().isoformat(),
     }
 
-    # Add background task
-    background_tasks.add_task(background_extract_impacts, upload_id, task_id, data_path, species)
+    # Add background task (removed species parameter)
+    background_tasks.add_task(background_extract_impacts, upload_id, task_id, data_path)
 
     return {
         "task_id": task_id,
         "upload_id": upload_id,
         "status": "started",
-        "message": "Impact extraction task started",
+        "message": "Impact extraction task started using species information from datapath",
     }
 
 

@@ -350,15 +350,27 @@ h1:not(.md-content h1) {
 }
 
 .action-button-extract {
-  @apply p-4 rounded hover:bg-indigo-50;
+  @apply p-4 rounded;
 }
 
 .action-button-extract-enabled {
-  @apply text-indigo-600 hover:text-indigo-900;
+  @apply text-green-600 hover:text-green-900 hover:bg-green-50;
 }
 
 .action-button-extract-disabled {
   @apply text-gray-400 cursor-not-allowed;
+}
+
+.action-button-species {
+  @apply p-4 rounded;
+}
+
+.action-button-species-enabled {
+  @apply text-green-600 hover:text-green-900 hover:bg-green-50;
+}
+
+.action-button-species-selected {
+  @apply text-green-600 hover:text-green-900 hover:bg-green-50;
 }
 
 .action-button-delete {
@@ -366,15 +378,168 @@ h1:not(.md-content h1) {
 }
 
 .spinner {
-  @apply animate-spin h-5 w-5 border-2 border-t-transparent rounded-full;
+  @apply h-5 w-5 border-2 border-yellow-600 rounded-full;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
 }
 
-.spinner-yellow {
-  @apply border-yellow-600;
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.spinner-indigo {
-  @apply border-indigo-600;
+/* Species display styles */
+.species-info {
+  @apply text-xs;
+}
+
+.species-info .scientific-name {
+  @apply font-semibold text-gray-900;
+}
+
+.species-info .vernacular-names {
+  @apply text-gray-600 ml-1;
+}
+
+/* Modal styles */
+.modal-overlay {
+  @apply fixed inset-0 bg-black flex items-center justify-center z-50;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  @apply bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 overflow-hidden;
+  max-height: 90vh;
+}
+
+.species-search-modal {
+  @apply max-w-2xl;
+}
+
+.modal-header {
+  @apply flex items-center justify-between p-6 border-b border-gray-200;
+}
+
+.modal-header h3 {
+  @apply text-lg font-semibold text-gray-900;
+}
+
+.modal-close {
+  @apply text-gray-400 hover:text-gray-600 p-1;
+}
+
+.modal-body {
+  @apply p-6 overflow-y-auto;
+  max-height: 60vh;
+}
+
+.modal-footer {
+  @apply flex justify-end gap-3 p-6 border-t border-gray-200;
+}
+
+/* Species search modal specific styles */
+.search-section {
+  @apply mb-6;
+}
+
+.search-section h4 {
+  @apply text-base font-medium text-gray-900 mb-3;
+}
+
+.search-input-group {
+  @apply flex gap-2 mb-3;
+}
+
+.search-input {
+  @apply flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.search-button {
+  @apply px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed;
+}
+
+.error-message {
+  @apply text-red-600 text-sm mt-2;
+}
+
+.search-results {
+  @apply mt-4;
+}
+
+.search-results h5 {
+  @apply text-sm font-medium text-gray-700 mb-2;
+}
+
+.species-list {
+  @apply max-h-60 overflow-y-auto;
+}
+
+.species-list > * + * {
+  margin-top: 0.5rem; /* space-y-2 equivalent */
+}
+
+.species-item {
+  @apply p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50;
+}
+
+.species-item.selected {
+  @apply bg-blue-50 border-blue-300;
+}
+
+.species-item .scientific-name {
+  @apply font-medium text-gray-900;
+}
+
+.species-item .vernacular-names {
+  @apply text-sm text-gray-600 mt-1;
+}
+
+.editing-section {
+  @apply pt-6 border-t border-gray-200;
+}
+
+.editing-section h4 {
+  @apply text-base font-medium text-gray-900 mb-4;
+}
+
+.form-group {
+  @apply mb-4;
+}
+
+.form-group label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.vernacular-name-input {
+  @apply flex gap-2 mb-2;
+}
+
+.vernacular-name-input .form-input {
+  @apply flex-1;
+}
+
+.add-button {
+  @apply px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm;
+}
+
+.remove-button {
+  @apply px-2 py-2 bg-red-600 text-white rounded-md hover:bg-red-700;
+}
+
+.button-primary {
+  @apply px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed;
+}
+
+.button-secondary {
+  @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300;
 }
 
 /* Expanded content styles */

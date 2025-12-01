@@ -9,4 +9,7 @@ export const API_ENDPOINTS = {
   getMarkdown: (id: string) => `${API_BASE_URL}/analysis/get-markdown/${id}`,
   getImpacts: (id: string) => `${API_BASE_URL}/analysis/get-impacts/${id}`,
   taskStatus: (id: string) => `${API_BASE_URL}/analysis/tasks/${id}/status`,
+  gbifSearch: (query: string) => `${API_BASE_URL}/gbif/search?q=${encodeURIComponent(query)}`,
+  setSpecies: (id: string) => `${API_BASE_URL}/analysis/set-species/${id}`,
+  getSpecies: (id: string) => `${API_BASE_URL}/analysis/get-species/${id}`,
 } as const

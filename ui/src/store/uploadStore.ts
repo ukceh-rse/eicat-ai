@@ -1,12 +1,7 @@
 import { create } from 'zustand'
 import { devtools, subscribeWithSelector } from 'zustand/middleware'
-import type { UploadMetadata, Paper, Impact, TaskStatus } from '../types'
+import type { UploadMetadata, Paper, Impact, TaskStatus, SpeciesNames } from '../types'
 import { API_ENDPOINTS } from '../config/api'
-
-const SPECIES_NAMES = {
-  "scientific_name": "Passer domesticus",
-  "vernacular_names": ["house sparrow"]
-}
 
 interface UploadStore {
   // === CORE STATE ===
@@ -32,6 +27,13 @@ interface UploadStore {
     impacts: Impact[] | null
   }>
   
+  // === SPECIES STATE (per upload ID) ===
+  speciesStates: Record<string, {
+    selectedSpecies: SpeciesNames | null
+    loadingSpecies: boolean
+    hasAttemptedLoad: boolean
+  }>
+  
   // === UPLOAD FORM STATE ===
   uploadForm: {
     selectedFile: File | null
@@ -55,6 +57,10 @@ interface UploadStore {
   toggleMarkdown: (uploadId: string) => Promise<void>
   toggleImpacts: (uploadId: string) => Promise<void>
   
+  // === SPECIES ACTIONS ===
+  setSpeciesForUpload: (uploadId: string, species: SpeciesNames) => Promise<void>
+  loadSpeciesForUpload: (uploadId: string) => Promise<void>
+  
   // === FILE UPLOAD ACTIONS ===
   selectFile: (file: File | null) => void
   
@@ -75,6 +81,7 @@ export const useUploadStore = create<UploadStore>()(
       taskStates: {},
       loadingStates: {},
       expandedContent: {},
+      speciesStates: {},
       uploadForm: {
         selectedFile: null,
         uploading: false,
@@ -156,6 +163,9 @@ export const useUploadStore = create<UploadStore>()(
             ),
             expandedContent: Object.fromEntries(
               Object.entries(state.expandedContent).filter(([id]) => id !== uploadId)
+            ),
+            speciesStates: Object.fromEntries(
+              Object.entries(state.speciesStates).filter(([id]) => id !== uploadId)
             )
           }))
         } catch (err) {
@@ -228,13 +238,20 @@ export const useUploadStore = create<UploadStore>()(
       },
       
       extractImpacts: async (uploadId, filename) => {
+        // First check if species is selected
+        const speciesState = get().speciesStates[uploadId]
+        if (!speciesState?.selectedSpecies) {
+          alert('Please select a species before extracting impacts.')
+          return
+        }
+
         if (!confirm(`Extract impacts from "${filename}"? This may take a few minutes.`)) return
         
         try {
           const response = await fetch(API_ENDPOINTS.extractImpacts(uploadId), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(SPECIES_NAMES),
+            body: JSON.stringify(speciesState.selectedSpecies),
           })
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
           
@@ -352,6 +369,97 @@ export const useUploadStore = create<UploadStore>()(
           }))
         }
       },
+
+      // === SPECIES ACTIONS ===
+      setSpeciesForUpload: async (uploadId, species) => {
+        try {
+          const response = await fetch(API_ENDPOINTS.setSpecies(uploadId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(species)
+          })
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+          
+          set(state => ({
+            speciesStates: {
+              ...state.speciesStates,
+              [uploadId]: {
+                ...state.speciesStates[uploadId],
+                selectedSpecies: species,
+                hasAttemptedLoad: true
+              }
+            }
+          }))
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to set species'
+          alert(errorMessage)
+        }
+      },
+
+      loadSpeciesForUpload: async (uploadId) => {
+        // Don't load if already attempted
+        const currentState = get().speciesStates[uploadId]
+        if (currentState?.hasAttemptedLoad) {
+          return
+        }
+
+        set(state => ({
+          speciesStates: {
+            ...state.speciesStates,
+            [uploadId]: {
+              ...state.speciesStates[uploadId],
+              loadingSpecies: true,
+              hasAttemptedLoad: true
+            }
+          }
+        }))
+
+        try {
+          const response = await fetch(API_ENDPOINTS.getSpecies(uploadId))
+          
+          if (response.ok) {
+            const species: SpeciesNames = await response.json()
+            set(state => ({
+              speciesStates: {
+                ...state.speciesStates,
+                [uploadId]: {
+                  ...state.speciesStates[uploadId],
+                  selectedSpecies: species,
+                  loadingSpecies: false
+                }
+              }
+            }))
+          } else if (response.status === 404) {
+            // No species set yet - this is expected for new uploads
+            set(state => ({
+              speciesStates: {
+                ...state.speciesStates,
+                [uploadId]: {
+                  ...state.speciesStates[uploadId],
+                  selectedSpecies: null,
+                  loadingSpecies: false
+                }
+              }
+            }))
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+        } catch (err) {
+          console.error('Failed to load species:', err)
+          set(state => ({
+            speciesStates: {
+              ...state.speciesStates,
+              [uploadId]: {
+                ...state.speciesStates[uploadId],
+                loadingSpecies: false
+              }
+            }
+          }))
+        }
+      },
       
       // === TASK POLLING ===
       startTaskPolling: () => {
@@ -451,3 +559,6 @@ export const useLoadingState = (uploadId: string) =>
 
 export const useExpandedContent = (uploadId: string) => 
   useUploadStore(state => state.expandedContent[uploadId])
+
+export const useSpeciesState = (uploadId: string) => 
+  useUploadStore(state => state.speciesStates[uploadId])
