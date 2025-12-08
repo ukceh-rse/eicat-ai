@@ -136,7 +136,7 @@ class Mechanism(str, Enum):
     HYBRIDISATION = "Hybridisation"
     TRANSMISSION_OF_DISEASES = "Transmission of diseases to native species"
     PARASITISM = "Parasitism"
-    POISONING_TOXICITY = "Poisoning/ toxicity"
+    POISONING_TOXICITY = "Poisoning/toxicity"
     BIO_FOULING = "Bio-fouling"
     GRAZING_HERBIVORY_BROWSING = "Grazing/herbivory/browsing"
     CHEMICAL_IMPACT = "Chemical Impact on ecosystem"
