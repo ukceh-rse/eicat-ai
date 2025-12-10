@@ -1,0 +1,63 @@
+x-container-names:
+  grobid: &grobid-container "grobid-service"
+  tei: &tei-container "tei-stylesheets"
+
+x-urls:
+  grobid-url: &grobid-url "http://grobid-service:8070"
+  tei-url: &tei-url "http://tei-stylesheets:8000"
+
+services:
+  tei-stylesheets-api:
+    build:
+      context: ./tei-stylesheets-api
+      dockerfile: dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    container_name: *tei-container
+    networks:
+      - eicat-network
+    restart: unless-stopped
+  grobid:
+    image: grobid/grobid:0.8.2-full
+    ports:
+      - "8070:8070"
+    environment:
+      - JAVA_OPTS=-Xmx4g
+    container_name: *grobid-container
+    networks:
+      - eicat-network
+    restart: unless-stopped
+  eicat-ai-api:
+    build:
+      context: ./api-agent
+      dockerfile: dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GROBID_URL=*grobid-url
+      - STYLESHEETS_URL=*tei-url
+    depends_on:
+      - grobid
+      - tei-stylesheets-api
+    container_name: eicat-api
+    networks:
+      - eicat-network
+    restart: unless-stopped
+  eicat-ai-ui:
+    build:
+      context: ./ui
+      dockerfile: dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - eicat-ai-api
+    container_name: eicat-ui
+    networks:
+      - eicat-network
+    restart: unless-stopped
+
+networks:
+  eicat-network:
+    driver: bridge

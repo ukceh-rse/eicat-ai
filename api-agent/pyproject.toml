@@ -23,6 +23,8 @@ dependencies = [
     "python-slugify>=8.0.4",
     "docx2pdf>=0.1.8",
     "pypandoc>=1.16.2",
+    "grobid-client-python>=0.1.2",
+    "html-to-markdown>=2.12.1",
 ]
 
 [dependency-groups]

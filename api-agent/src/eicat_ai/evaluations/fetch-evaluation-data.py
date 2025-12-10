@@ -47,7 +47,8 @@ def create_file_structure(gisd_file_path: Path, output_path: Path):
             create_scholar_link_file(reference, dir_path / "reference.html")
 
             group.to_csv(
-                dir_path / f"gold_impacts_{slugify(species, separator='_')}.csv", index=False
+                dir_path / f"gold_impacts_{slugify(species, separator='_')}.csv",
+                index=False,
             )
             p.update(task, advance=len(group))
 
@@ -86,9 +87,11 @@ def main(
     output_path: Annotated[
         Path,
         typer.Option(
-            "-o", "--output-path", help="Path to save the evaluation data to."
+            "-o",
+            "--output-path",
+            help="Path to save the evaluation data to.",
         ),
-    ],
+    ] = Path("./evalutation_data"),
 ) -> None:
     gisd_file_path = download(output_path)
     create_file_structure(gisd_file_path, output_path)
