@@ -2,12 +2,14 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pathlib import Path
 from typing import Dict, List
 import uuid
+import os
 from datetime import datetime
 from pydantic_ai import Agent
 from eicat_ai.models import UploadMetadata, Paper, Impact, SpeciesNames
 from eicat_ai.settings import settings
 from eicat_ai.converters import pdf_to_markdown, extract_impacts
 from eicat_ai.agents import paper_agent, data_extraction_agent
+from loguru import logger
 
 analysis_router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
@@ -55,22 +57,60 @@ async def background_convert_pdf(upload_id: str, task_id: str, data_path: Path):
             "progress": "Converting PDF to markdown...",
             "timestamp": datetime.now().isoformat(),
         }
+        from grobid_client.grobid_client import GrobidClient
 
-        agent: Agent[None, Paper] = paper_agent(AI_MODEL)
-        paper: Paper = await pdf_to_markdown(agent, str(file_path))
-        
+        grobid_service_name = os.getenv("GROBID_URL")
+
+        client: GrobidClient = GrobidClient(
+            grobid_server=f"http://{grobid_service_name}:8070"
+        )
+        logger.info("Calling GROBI service...")
+        client.process("processFulltextDocument", str(file_folder))
+        logger.info("Processed PDF...")
+
+        tei_file = file_folder / f"{file_path.stem}.grobid.tei.xml"
+        logger.info("Calling TEI stylesheets service")
+        import requests
+
+        tei_service_name = os.getenv("TEI_URL")
+        with open(tei_file, "r") as f:
+            files = {"file": f}
+            response = requests.post(
+                f"http://{tei_service_name}:8000/tei2html", files=files
+            )
+
+        if response.status_code == 200:
+            html_file = file_folder / f"{tei_file.stem}.html"
+            with open(html_file, "w", encoding="utf-8") as f:
+                f.write(response.text)
+                logger.info("Saved HTML...")
+
+        logger.info("Converting HTML to markdown")
+        from html_to_markdown import convert
+
+        with (
+            open(html_file, "r", encoding="utf-8") as input,
+            open(Path(f"{html_file.stem}.md"), "w") as output,
+        ):
+            html: str = input.read()
+            md: str = convert(html)
+            output.write(md)
+        logger.info("Finished converting HTML to markdown")
+        # agent: Agent[None, Paper] = paper_agent(AI_MODEL)
+        # paper: Paper = await pdf_to_markdown(agent, str(file_path))
+
         # Ensure metadata is initialized
-        if paper.metadata is None:
-            paper.metadata = {}
-        
-        paper.metadata["timestamp"] = datetime.now().isoformat()
-        paper.metadata["model"] = AI_MODEL
+        # if paper.metadata is None:
+        #    paper.metadata = {}
 
-        paper.save(str(file_folder / "converted.json"))
+        # paper.metadata["timestamp"] = datetime.now().isoformat()
+        # paper.metadata["model"] = AI_MODEL
+
+        # paper.save(str(file_folder / "converted.json"))
 
         # Update metadata to indicate markdown is available
-        metadata.markdown_available = True
-        metadata.save(data_path)
+        # metadata.markdown_available = True
+        # metadata.save(data_path)
 
         task_status[task_id] = {
             "status": "completed",
@@ -334,19 +374,19 @@ async def start_impact_extraction(
     file_folder = data_path / upload_id
     converted_path = file_folder / "converted.json"
     species_path = file_folder / "species.json"
-    
+
     # Check if paper has been converted to markdown
     if not converted_path.exists():
         raise HTTPException(
-            status_code=400, 
-            detail="Paper not converted to markdown. Please convert first."
+            status_code=400,
+            detail="Paper not converted to markdown. Please convert first.",
         )
-    
+
     # Check if species information exists
     if not species_path.exists():
         raise HTTPException(
             status_code=400,
-            detail="Species information not found. Please set species information first using /set-species endpoint."
+            detail="Species information not found. Please set species information first using /set-species endpoint.",
         )
 
     # Create task
@@ -370,7 +410,9 @@ async def start_impact_extraction(
 
 
 @analysis_router.get("/tasks/{task_id}/impacts", response_model=List[Impact])
-async def get_impact_extraction_result(task_id: str, data_path: Path = Depends(get_data_path)):
+async def get_impact_extraction_result(
+    task_id: str, data_path: Path = Depends(get_data_path)
+):
     """Get the extracted impacts result"""
     if task_id not in task_status:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -395,7 +437,9 @@ async def get_impact_extraction_result(task_id: str, data_path: Path = Depends(g
     impacts_path = file_folder / "impacts.csv"
 
     if not impacts_path.exists():
-        raise HTTPException(status_code=404, detail="Impact extraction result not found")
+        raise HTTPException(
+            status_code=404, detail="Impact extraction result not found"
+        )
 
     try:
         impacts = Impact.load_from_csv(str(impacts_path))
@@ -455,14 +499,14 @@ async def get_species_used_for_extraction(
         species = SpeciesNames.load(str(species_path))
         return species
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading species info: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error loading species info: {str(e)}"
+        )
 
 
 @analysis_router.post("/set-species/{upload_id}")
 async def set_species_for_analysis(
-    upload_id: str,
-    species: SpeciesNames,
-    data_path: Path = Depends(get_data_path)
+    upload_id: str, species: SpeciesNames, data_path: Path = Depends(get_data_path)
 ):
     """Set the species information to be used for analysis"""
     # Verify upload exists
@@ -480,7 +524,20 @@ async def set_species_for_analysis(
         return {
             "message": "Species information set successfully",
             "upload_id": upload_id,
-            "species": species
+            "species": species,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving species info: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error saving species info: {str(e)}"
+        )
+
+
+@analysis_router.get("/config/grobid-url")
+async def get_grobid_url():
+    """Get the GROBID_URL environment variable"""
+    grobid_url = os.getenv("GROBID_URL")
+    if grobid_url is None:
+        raise HTTPException(
+            status_code=404, detail="GROBID_URL environment variable not found"
+        )
+    return {"grobid_url": grobid_url}
