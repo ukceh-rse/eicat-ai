@@ -1,0 +1,11 @@
+[project]
+name = "tei-stylesheets-api"
+version = "0.1.0"
+description = "FastAPI service for TEI XML to HTML conversion using TEI Stylesheets"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.124.2",
+    "uvicorn>=0.38.0",
+    "python-multipart>=0.0.9",
+]

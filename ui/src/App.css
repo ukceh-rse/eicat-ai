@@ -1,0 +1,636 @@
+@import "tailwindcss";
+
+.main-content {
+  @apply ml-48 p-6;
+  min-height: 100vh;
+}
+
+.page-container {
+  @apply w-full;
+}
+
+.card {
+  padding: 2em;
+}
+
+.sidebar-nav {
+  @apply fixed top-0 left-0 h-screen w-48 bg-gray-50 shadow-lg z-50 flex flex-col;
+}
+
+.nav-link {
+  @apply px-5 py-4 text-gray-700 no-underline border-b border-gray-200 transition-colors duration-200 hover:bg-gray-100;
+}
+
+.nav-link:last-child {
+  @apply border-b-0;
+}
+
+.nav-header {
+  @apply p-6 border-b border-gray-200 text-center;
+}
+
+.nav-icon {
+  @apply text-5xl mb-2;
+}
+
+.nav-title {
+  @apply text-lg font-bold text-gray-800 m-0;
+}
+
+p:not(.md-content h1) {
+  @apply mb-4
+}
+
+h1:not(.md-content h1) {
+  @apply mb-6
+}
+
+/* Table styles */
+.table-container {
+  @apply overflow-x-auto;
+}
+
+.table {
+  @apply min-w-full bg-white border border-gray-200 rounded-lg shadow;
+}
+
+.table thead {
+  @apply bg-gray-50;
+}
+
+.table th {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.table tbody {
+  @apply bg-white divide-y divide-gray-200;
+}
+
+.table tr {
+  @apply hover:bg-gray-50;
+}
+
+.table td {
+  @apply px-6 py-4 whitespace-nowrap;
+}
+
+.table .cell-primary {
+  @apply text-sm font-medium text-gray-900;
+}
+
+.table .cell-secondary {
+  @apply text-sm text-gray-500;
+}
+
+.table .cell-regular {
+  @apply text-sm text-gray-900;
+}
+
+.table .cell-actions {
+  @apply text-sm font-medium;
+}
+
+.md-content h1 {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.md-content h2 {
+  @apply text-xl font-semibold text-gray-800;
+}
+
+.md-content h3 {
+  @apply text-lg font-medium text-gray-700;
+}
+
+.md-content h4 {
+  @apply text-base font-medium text-gray-700;
+}
+
+.md-content h5 {
+  @apply text-sm font-medium text-gray-700;
+}
+
+.md-content h6 {
+  @apply text-sm font-medium text-gray-700;
+}
+
+.md-content p {
+  @applytext-gray-700 leading-relaxed;
+}
+
+.md-content ul {
+  @apply list-disc pl-6 space-y-2;
+}
+
+.md-content ol {
+  @apply list-decimal pl-6 space-y-2;
+}
+
+.md-content li {
+  @apply text-gray-700;
+}
+
+.md-content blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 bg-gray-50 py-2;
+}
+
+.md-content code {
+  @apply bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800 break-all;
+}
+
+.md-content pre {
+  @apply bg-gray-100 p-4 rounded overflow-x-auto text-sm;
+}
+
+.md-content pre code {
+  @apply bg-transparent px-0 py-0 font-mono;
+}
+
+.md-content strong {
+  @apply font-semibold text-gray-900;
+}
+
+.md-content em {
+  @apply italic text-gray-700;
+}
+
+.md-content a {
+  @apply text-blue-600 hover:text-blue-800 underline;
+}
+
+.md-content table {
+  @apply min-w-full border-collapse border border-gray-300 mb-4;
+}
+
+.md-content thead {
+  @apply bg-gray-50;
+}
+
+.md-content tbody {
+  @apply bg-white;
+}
+
+.md-content tr {
+  @apply border-b border-gray-200;
+}
+
+.md-content th {
+  @apply border border-gray-300 px-3 py-2 text-left font-semibold text-gray-900;
+}
+
+.md-content td {
+  @apply border border-gray-300 px-3 py-2 text-gray-700;
+}
+
+.md-content hr {
+  @apply my-6 border-gray-300;
+}
+
+/* Details table styles - override parent table styles */
+.details-table {
+  @apply border-none shadow-none;
+  background: transparent;
+}
+
+.details-table tbody {
+  background: transparent;
+  /* Override parent table's divide-y */
+  border: none;
+}
+
+.details-table td {
+  @apply border-none;
+  white-space: normal;
+  padding: 0 8px 0 0;
+}
+
+.details-table td:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.details-table td:last-child {
+  padding-right: 0;
+}
+
+.details-table tr {
+  @apply hover:bg-transparent;
+  /* Override parent table's divide-y separators */
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* Component-specific styles */
+
+/* Page layout styles */
+.page-title {
+  @apply text-3xl font-bold;
+}
+
+.page-description {
+  @apply mb-4;
+}
+
+.error-message {
+  @apply text-red-600;
+}
+
+.link-primary {
+  @apply text-blue-600 hover:underline;
+}
+
+/* Upload component styles */
+.upload-container {
+  @apply bg-white rounded-lg shadow p-6 max-w-xl;
+}
+
+.upload-title {
+  @apply text-xl font-semibold mb-4;
+}
+
+.upload-form {
+  @apply space-y-4;
+}
+
+.file-input {
+  @apply block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100;
+}
+
+.file-size-hint {
+  @apply text-xs text-gray-500;
+}
+
+.error-notification {
+  @apply p-3 bg-red-50 border border-red-200 rounded;
+}
+
+.error-text {
+  @apply text-sm text-red-600;
+}
+
+.success-notification {
+  @apply p-3 bg-green-50 border border-green-200 rounded;
+}
+
+.success-text {
+  @apply text-sm text-green-600 font-medium;
+}
+
+.success-detail {
+  @apply text-xs text-green-600;
+}
+
+.file-preview {
+  @apply p-3 bg-gray-50 rounded border;
+}
+
+.file-name {
+  @apply text-sm font-medium;
+}
+
+.file-size {
+  @apply text-xs text-gray-600;
+}
+
+.button-upload {
+  @apply w-full py-2 px-4 rounded;
+}
+
+.button-upload-enabled {
+  @apply bg-blue-600 hover:bg-blue-700 text-white;
+}
+
+.button-upload-disabled {
+  @apply bg-gray-400 text-gray-600 cursor-not-allowed;
+}
+
+/* File table components */
+.file-link {
+  @apply text-lg font-bold text-blue-600 hover:text-blue-900 hover:underline;
+}
+
+.file-details {
+  @apply text-xs text-gray-400 pl-4;
+}
+
+.file-detail-label {
+  @apply pr-4 font-medium;
+}
+
+.loading-text {
+  @apply text-gray-500 text-xs;
+}
+
+.toggle-link {
+  @apply text-blue-600 hover:text-blue-900 hover:underline text-xs cursor-pointer;
+}
+
+.action-buttons {
+  @apply flex gap-2;
+}
+
+.action-button-base {
+  @apply p-1 rounded;
+}
+
+.action-icon {
+  @apply h-5 w-5;
+}
+
+.action-button-convert {
+  @apply p-4 rounded;
+}
+
+.action-button-convert-enabled {
+  @apply text-green-600 hover:text-green-900 hover:bg-green-50;
+}
+
+.action-button-convert-disabled {
+  @apply text-gray-400 cursor-not-allowed;
+}
+
+.action-button-extract {
+  @apply p-4 rounded;
+}
+
+.action-button-extract-enabled {
+  @apply text-green-600 hover:text-green-900 hover:bg-green-50;
+}
+
+.action-button-extract-disabled {
+  @apply text-gray-400 cursor-not-allowed;
+}
+
+.action-button-species {
+  @apply p-4 rounded;
+}
+
+.action-button-species-enabled {
+  @apply text-green-600 hover:text-green-900 hover:bg-green-50;
+}
+
+.action-button-species-selected {
+  @apply text-green-600 hover:text-green-900 hover:bg-green-50;
+}
+
+.action-button-delete {
+  @apply text-red-600 hover:text-red-900 p-4 hover:bg-red-50 rounded;
+}
+
+.spinner {
+  @apply h-5 w-5 border-2 border-yellow-600 rounded-full;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Species display styles */
+.species-info {
+  @apply text-xs;
+}
+
+.species-info .scientific-name {
+  @apply font-semibold text-gray-900;
+}
+
+.species-info .vernacular-names {
+  @apply text-gray-600 ml-1;
+}
+
+/* Modal styles */
+.modal-overlay {
+  @apply fixed inset-0 bg-black flex items-center justify-center z-50;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  @apply bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 overflow-hidden;
+  max-height: 90vh;
+}
+
+.species-search-modal {
+  @apply max-w-2xl;
+}
+
+.modal-header {
+  @apply flex items-center justify-between p-6 border-b border-gray-200;
+}
+
+.modal-header h3 {
+  @apply text-lg font-semibold text-gray-900;
+}
+
+.modal-close {
+  @apply text-gray-400 hover:text-gray-600 p-1;
+}
+
+.modal-body {
+  @apply p-6 overflow-y-auto;
+  max-height: 60vh;
+}
+
+.modal-footer {
+  @apply flex justify-end gap-3 p-6 border-t border-gray-200;
+}
+
+/* Species search modal specific styles */
+.search-section {
+  @apply mb-6;
+}
+
+.search-section h4 {
+  @apply text-base font-medium text-gray-900 mb-3;
+}
+
+.search-input-group {
+  @apply flex gap-2 mb-3;
+}
+
+.search-input {
+  @apply flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.search-button {
+  @apply px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed;
+}
+
+.error-message {
+  @apply text-red-600 text-sm mt-2;
+}
+
+.search-results {
+  @apply mt-4;
+}
+
+.search-results h5 {
+  @apply text-sm font-medium text-gray-700 mb-2;
+}
+
+.species-list {
+  @apply max-h-60 overflow-y-auto;
+}
+
+.species-list > * + * {
+  margin-top: 0.5rem; /* space-y-2 equivalent */
+}
+
+.species-item {
+  @apply p-3 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-50;
+}
+
+.species-item.selected {
+  @apply bg-blue-50 border-blue-300;
+}
+
+.species-item .scientific-name {
+  @apply font-medium text-gray-900;
+}
+
+.species-item .vernacular-names {
+  @apply text-sm text-gray-600 mt-1;
+}
+
+.editing-section {
+  @apply pt-6 border-t border-gray-200;
+}
+
+.editing-section h4 {
+  @apply text-base font-medium text-gray-900 mb-4;
+}
+
+.form-group {
+  @apply mb-4;
+}
+
+.form-group label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.vernacular-name-input {
+  @apply flex gap-2 mb-2;
+}
+
+.vernacular-name-input .form-input {
+  @apply flex-1;
+}
+
+.add-button {
+  @apply px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm;
+}
+
+.remove-button {
+  @apply px-2 py-2 bg-red-600 text-white rounded-md hover:bg-red-700;
+}
+
+.button-primary {
+  @apply px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed;
+}
+
+.button-secondary {
+  @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300;
+}
+
+/* Expanded content styles */
+.expanded-content {
+  @apply p-4;
+}
+
+.markdown-content {
+  @apply max-h-96 overflow-y-auto;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  white-space: pre-wrap;
+}
+
+.impacts-content {
+  @apply max-h-96 overflow-y-auto;
+}
+
+.impacts-header {
+  @apply font-bold mb-3 text-gray-800;
+}
+
+.impacts-empty {
+  @apply text-gray-500 italic;
+}
+
+.impacts-table-container {
+  @apply overflow-x-auto;
+}
+
+.impacts-table {
+  @apply w-full text-sm border-collapse border border-gray-300;
+}
+
+.impacts-table-header {
+  @apply bg-gray-100;
+}
+
+.impacts-table-cell {
+  @apply border border-gray-300 px-2 py-1;
+}
+
+.impacts-table-header-cell {
+  @apply border border-gray-300 px-2 py-1 text-left font-medium;
+}
+
+.impacts-table-row-even {
+  @apply bg-white;
+}
+
+.impacts-table-row-odd {
+  @apply bg-gray-50;
+}
+
+.impacts-species-cell {
+  @apply font-medium;
+}
+
+.impact-category-badge {
+  @apply px-1 py-0.5 rounded text-xs font-bold;
+}
+
+.impact-category-mv {
+  @apply bg-red-100 text-red-800;
+}
+
+.impact-category-mr {
+  @apply bg-red-100 text-red-600;
+}
+
+.impact-category-mo {
+  @apply bg-orange-100 text-orange-800;
+}
+
+.impact-category-mn {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.impact-category-mc {
+  @apply bg-green-100 text-green-800;
+}
+
+.impact-category-default {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.evidence-cell {
+  @apply text-xs max-w-xs;
+}
+
+.evidence-truncate {
+  @apply truncate;
+}
