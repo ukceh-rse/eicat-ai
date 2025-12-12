@@ -531,7 +531,7 @@ export const useUploadStore = create<UploadStore>()(
               console.error('Failed to poll task status:', err)
             }
           }
-        }, 5000)
+        }, 2000)
       },
       
       stopTaskPolling: () => {

@@ -27,7 +27,7 @@ services:
       - "8000:8000"
     environment:
       - GROBID_URL=grobid
-      - STYLESHEETS_URL=tei-stylesheets-api
+      - TEI_URL=tei-stylesheets-api
     depends_on:
       - grobid
       - tei-stylesheets-api
