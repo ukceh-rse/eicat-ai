@@ -1,6 +1,8 @@
-from pydantic_ai import Agent, ModelSettings, RunContext
-from eicat_ai.models import Paper, Impact
 from typing import List
+
+from pydantic_ai import Agent, ModelSettings, RunContext
+
+from eicat_ai.models import Impact, Paper
 
 
 def paper_agent(model_name: str) -> Agent[None, Paper]:
@@ -58,7 +60,7 @@ def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
     agent: Agent[Paper, List[Impact]] = Agent[Paper, List[Impact]](
         model_name,
         output_type=List[Impact],
-        output_retries=2,
+        output_retries=5,
         model_settings=ModelSettings(max_tokens=10_000, temperature=0.0),
     )
 
