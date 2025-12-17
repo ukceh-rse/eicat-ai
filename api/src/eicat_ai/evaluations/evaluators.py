@@ -1,16 +1,20 @@
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.settings import ModelSettings
 from pydantic_evals.evaluators import (
     Evaluator,
     EvaluatorContext,
     EvaluatorOutput,
 )
-from eicat_ai.models import Impact
-from typing import List, Tuple, Optional, Dict
-from pydantic_ai import Agent, RunContext
-from pydantic import BaseModel, Field
 
-evaluation_model: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
+from eicat_ai.models import Impact
+
+DEFAULT_EVAL_MODEL: str = "bedrock:amazon.nova-lite-v1:0"
+DEFAULT_EVAL_PATH: str = "./eval-data"
+DEFAULT_MODEL: str = "bedrock:amazon.nova-lite-v1:0"
 
 
 class Pairing(BaseModel):
@@ -81,10 +85,10 @@ class AccuracyLLMJudge(Evaluator):
         agent: Agent[Tuple[List[Impact], List[Impact]], LLMMatchingEvaluation] = Agent[
             Tuple[List[Impact], List[Impact]], LLMMatchingEvaluation
         ](
-            model=evaluation_model,
+            model=DEFAULT_EVAL_MODEL,
             output_type=LLMMatchingEvaluation,
-            output_retries=2,
-            model_settings=ModelSettings(max_tokens=1_000, temperature=0.0),
+            output_retries=5,
+            model_settings=ModelSettings(max_tokens=10_000, temperature=0.0),
         )
 
         @agent.system_prompt

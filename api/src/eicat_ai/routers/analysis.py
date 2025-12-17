@@ -1,18 +1,21 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+import os
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
-import uuid
-import requests
-import os
-from datetime import datetime
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic_ai import Agent
-from eicat_ai.models import UploadMetadata, Paper, Impact, SpeciesNames
-from eicat_ai.settings import settings
-from eicat_ai.converters import extract_impacts
+
 from eicat_ai.agents import data_extraction_agent
-from loguru import logger
-from grobid_client.grobid_client import GrobidClient
-from html_to_markdown import convert
+from eicat_ai.converters import (
+    convert_html_to_markdown,
+    convert_pdf_to_tei,
+    convert_tei_to_html,
+    extract_impacts,
+)
+from eicat_ai.models import Impact, Paper, SpeciesNames, UploadMetadata
+from eicat_ai.settings import settings
 
 analysis_router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
@@ -23,56 +26,6 @@ task_status: Dict[str, Dict] = {}
 
 def get_data_path() -> Path:
     return settings.data_path
-
-
-def process_pdf_to_tei(file_folder: Path) -> None:
-    """Process PDF file using GROBID service to generate TEI XML"""
-    grobid_service_name = os.getenv("GROBID_URL")
-    client: GrobidClient = GrobidClient(
-        grobid_server=f"http://{grobid_service_name}:8070"
-    )
-    logger.info("Calling GROBID service to process PDF")
-    client.process("processFulltextDocument", str(file_folder))
-    logger.info("GROBID service completed PDF processing")
-
-
-def convert_tei_to_html(tei_file: Path, file_folder: Path) -> Path:
-    """Convert TEI XML file to HTML using TEI stylesheets service"""
-    logger.info("Calling TEI stylesheets service to convert XML to HTML")
-    
-    tei_service_name = os.getenv("TEI_URL")
-    endpoint = f"http://{tei_service_name}:8000/tei2html"
-    logger.info(f"Making request to TEI stylesheets endpoint: {endpoint}")
-    
-    with open(tei_file, "r") as f:
-        files = {"file": f}
-        response = requests.post(endpoint, files=files)
-
-    if response.status_code == 200:
-        html_file = file_folder / f"{tei_file.stem}.html"
-        with open(html_file, "w", encoding="utf-8") as f:
-            f.write(response.text)
-            logger.info("TEI stylesheets service completed HTML conversion")
-        return html_file
-    else:
-        raise Exception(f"TEI stylesheets service failed with status code {response.status_code}")
-
-
-def convert_html_to_markdown(html_file: Path, file_folder: Path, file_stem: str) -> str:
-    """Convert HTML file to markdown and save both the file and return the content"""
-    logger.info("Converting HTML to markdown")
-    
-    markdown_file: Path = file_folder / f"{file_stem}.md"
-    with (
-        open(html_file, "r", encoding="utf-8") as input_file,
-        open(markdown_file, "w") as output_file,
-    ):
-        html_content: str = input_file.read()
-        markdown_content: str = convert(html_content)
-        output_file.write(markdown_content)
-    
-    logger.info("HTML to markdown conversion completed")
-    return markdown_content
 
 
 async def background_convert_pdf(upload_id: str, task_id: str, data_path: Path):
@@ -111,12 +64,14 @@ async def background_convert_pdf(upload_id: str, task_id: str, data_path: Path):
             "timestamp": datetime.now().isoformat(),
         }
 
-        process_pdf_to_tei(file_folder)
+        convert_pdf_to_tei(file_path)
 
         tei_file = file_folder / f"{file_path.stem}.grobid.tei.xml"
-        html_file = convert_tei_to_html(tei_file, file_folder)
-        
-        markdown_content = convert_html_to_markdown(html_file, file_folder, file_path.stem)
+        html_file = convert_tei_to_html(tei_file)
+
+        md_file = convert_html_to_markdown(html_file)
+        with open(md_file, "r", encoding="utf-8") as f:
+            markdown_content = f.read()
 
         paper: Paper = Paper(content=markdown_content)
         paper.save(str(file_folder / "converted.json"))
@@ -145,7 +100,6 @@ async def start_pdf_to_markdown(
     data_path: Path = Depends(get_data_path),
 ):
     """Start PDF to markdown conversion in background"""
-    # Verify upload exists
     metadata = UploadMetadata.load_by_id(upload_id, data_path)
     if metadata is None:
         raise HTTPException(status_code=404, detail="Upload not found")
@@ -155,7 +109,6 @@ async def start_pdf_to_markdown(
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
-    # Create task
     task_id = str(uuid.uuid4())
     task_status[task_id] = {
         "status": "started",
@@ -164,7 +117,6 @@ async def start_pdf_to_markdown(
         "timestamp": datetime.now().isoformat(),
     }
 
-    # Add background task with data_path parameter
     background_tasks.add_task(background_convert_pdf, upload_id, task_id, data_path)
 
     return {
@@ -200,12 +152,10 @@ async def get_conversion_result(task_id: str, data_path: Path = Depends(get_data
     if task["status"] != "completed":
         raise HTTPException(status_code=400, detail="Task not completed yet")
 
-    # Get upload_id from task
     upload_id = task.get("upload_id")
     if not upload_id:
         raise HTTPException(status_code=500, detail="Upload ID not found in task")
 
-    # Load result from file
     file_folder = data_path / upload_id
     result_path = file_folder / "converted.json"
 
@@ -225,12 +175,10 @@ async def get_converted_paper_by_upload(
     upload_id: str, data_path: Path = Depends(get_data_path)
 ):
     """Get the converted paper result by upload ID"""
-    # Verify upload exists
     metadata = UploadMetadata.load_by_id(upload_id, data_path)
     if metadata is None:
         raise HTTPException(status_code=404, detail="Upload not found")
 
-    # Check if conversion result exists
     file_folder = data_path / upload_id
     result_path = file_folder / "converted.json"
 

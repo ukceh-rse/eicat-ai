@@ -1,16 +1,20 @@
-from pydantic_evals import Case, Dataset
-from eicat_ai.models import Paper, Impact, SpeciesNames
-from eicat_ai.converters import extract_impacts
-from eicat_ai.agents import data_extraction_agent
-from typing import List, Literal
-from pydantic_ai import Agent
 from pathlib import Path
-import typer
-from typing_extensions import Annotated
-from rich.progress import Progress
-from eicat_ai.evaluations.evaluators import AccuracyLLMJudge
+from typing import List, Literal
 
-evaluation_model: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
+import typer
+from pydantic_ai import Agent
+from pydantic_evals import Case, Dataset
+from rich.progress import Progress
+from typing_extensions import Annotated
+
+from eicat_ai.agents import data_extraction_agent
+from eicat_ai.converters import extract_impacts
+from eicat_ai.evaluations.evaluators import (
+    DEFAULT_EVAL_PATH,
+    DEFAULT_MODEL,
+    AccuracyLLMJudge,
+)
+from eicat_ai.models import Impact, Paper, SpeciesNames
 
 
 async def impact_extraction(inputs: dict) -> List[Impact]:
@@ -20,11 +24,14 @@ async def impact_extraction(inputs: dict) -> List[Impact]:
 def load_evaluation_test_case(
     test_case_path: Path, agent: Agent[Paper, List[Impact]]
 ) -> List[Case]:
-    paper_path: Path = test_case_path / "paper.json"
+    paper_path: Path = test_case_path / "paper.md"
     if not paper_path.exists():
         return []
 
-    paper: Paper = Paper.load(str(paper_path))
+    with open(paper_path, "r", encoding="utf-8") as file:
+        paper_content = file.read()
+
+    paper: Paper = Paper(content=paper_content)
     cases: List[Case] = []
 
     for gold_impacts_path in test_case_path.glob("gold_impacts_*"):
@@ -51,10 +58,10 @@ def load_evaluation_test_case(
 
 
 def load_dynamic_evaluation_dataset(
-    path: str, model_name: str = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
+    path: Path, model_name: str = DEFAULT_MODEL
 ) -> Dataset:
     cases = []
-    test_case_dirs = [d for d in Path(path).iterdir() if d.is_dir()]
+    test_case_dirs = [d for d in path.iterdir() if d.is_dir()]
     agent = data_extraction_agent(model_name)
     with Progress() as progress:
         task = progress.add_task(
@@ -74,8 +81,11 @@ MODEL_MAP = {
 
 def main(
     eval_path: Annotated[
-        str, typer.Argument(help="Path to the evaluation dataset directory")
-    ],
+        Path,
+        typer.Option(
+            "-i", "--input-path", help="Path to the evaluation data directory."
+        ),
+    ] = Path(DEFAULT_EVAL_PATH),
     model: Annotated[
         Literal["claude"],
         typer.Option("-m", "--model", help="Model name to use for evaluation"),
