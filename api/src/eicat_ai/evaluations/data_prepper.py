@@ -1,9 +1,7 @@
-import sys
 from pathlib import Path
 from typing import Annotated
 
 import typer
-from loguru import logger
 from rich.progress import Progress, TaskID
 
 from eicat_ai.evaluations.evaluators import DEFAULT_EVAL_PATH
@@ -36,6 +34,4 @@ def main(
 
 
 if __name__ == "__main__":
-    logger.remove()
-    logger.add(sys.stderr, level="INFO")
     typer.run(main)
