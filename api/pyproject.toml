@@ -39,3 +39,6 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[project.scripts]
+eicat-eval = "eicat_ai.evaluations.evaluator_cli:app"
