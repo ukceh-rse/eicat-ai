@@ -59,23 +59,30 @@ The **Environmental Impact Classification for Alien Taxa (EICAT)** is a standard
 
 - **Backend**: Python 3.13+, FastAPI, Pydantic AI
 - **Frontend**: React 19, TypeScript, Vite, TailwindCSS
-- **LLM Integration**: Pydantic AI (supports OpenAI, Anthropic, etc.)
+- **LLM Integration**: AWS Bedrock (Claude 3.7 Sonnet, Nova Lite) via Pydantic AI
 - **Document Processing**: GROBID, TEI Stylesheets
 - **Data Sources**: GISD (Global Invasive Species Database), GBIF
 
 ## 📋 Prerequisites
 
-Before running EICAT AI, ensure you have the following installed:
+### For Running with Docker (Production/Quick Start)
 
 - **[Docker](https://docs.docker.com/get-docker/)** (version 20.10 or higher)
 - **[Docker Compose](https://docs.docker.com/compose/install/)** (version 2.0 or higher)
-- **At least 4GB of available RAM** (GROBID requires significant memory)
-- **10GB of free disk space**
 
-### Optional
+### For Development
 
-- **[uv](https://github.com/astral-sh/uv)** - Fast Python package manager (for development and running evaluation scripts)
-- **[Python 3.13+](https://www.python.org/downloads/)** - If you want to run scripts without Docker
+If you want to run services locally without Docker or contribute to the project:
+
+- **[Python 3.13+](https://www.python.org/downloads/)** - Required for API development
+- **[uv](https://github.com/astral-sh/uv)** - Fast Python package manager (recommended for Python dependency management)
+- **[Node.js](https://nodejs.org/)** (version 18.0 or higher) - Required for UI development
+- **[npm](https://www.npmjs.com/)** (version 9.0 or higher) - Comes with Node.js, used for managing frontend dependencies
+
+### For Running Evaluations
+
+- **[uv](https://github.com/astral-sh/uv)** or **pip** - To install the evaluation CLI
+- Docker services running (API, GROBID, TEI Stylesheets)
 
 ## 🚀 Installation & Quick Start
 
@@ -88,14 +95,16 @@ cd eicat-ai
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the root directory with your LLM API credentials:
+Create a `.env` file in the root directory with your AWS credentials:
 
 ```bash
-# LLM Configuration (required for data extraction)
-OPENAI_API_KEY=your_openai_api_key_here
-# Or use other providers supported by Pydantic AI:
-# ANTHROPIC_API_KEY=your_anthropic_key_here
+# AWS Configuration (required for Bedrock LLM access)
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=eu-west-2  # or your preferred AWS region with Bedrock access
 ```
+
+> **Note**: The application uses AWS Bedrock models (Claude 3.7 Sonnet and Nova Lite). Ensure your AWS account has access to Amazon Bedrock and the required models are enabled in your region.
 
 ### 3. Start All Services
 
@@ -116,9 +125,7 @@ All services should show status as "Up" or "running".
 ### 5. Access the Application
 
 - **Web UI**: http://localhost:8080
-- **API**: http://localhost:8000
-- **API Documentation (Swagger)**: http://localhost:8000/docs
-- **API Documentation (ReDoc)**: http://localhost:8000/redoc
+- **API**: http://localhost:8000/docs
 
 ## 📘 Usage
 
@@ -249,22 +256,17 @@ For detailed deployment instructions, see **[infrastructure/README.md](infrastru
 ### Development Setup
 
 For local development without Docker:
-
+#### API
 ```bash
-# Install API dependencies
 cd api
-uv pip install -e ".[dev]"
-
+uv sync
+uv run eicat_ai.main:app --reload
+```
+#### UI
+```bash
 # Install UI dependencies
-cd ../ui
+cd ui
 npm install
-
-# Run API in development mode
-cd ../api
-uvicorn eicat_ai.main:app --reload
-
-# Run UI in development mode (in another terminal)
-cd ../ui
 npm run dev
 ```
 
