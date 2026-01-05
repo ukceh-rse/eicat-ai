@@ -19,12 +19,16 @@ def paper_agent(model_name: str) -> Agent[None, Paper]:
         Agent[None, Paper]: A configured PydanticAI agent that converts PDF academic paper
         text into Paper objects with proper formatting and structure
     """
-    return Agent[None, Paper](
-        model_name,
+    agent: Agent[None, Paper] = Agent[None, Paper](
+        model=model_name,
         output_type=Paper,
         output_retries=2,
         model_settings=ModelSettings(max_tokens=10_000, temperature=0.0),
-        system_prompt="""
+    )
+
+    @agent.system_prompt
+    async def get_system_prompt(ctx: RunContext[None]) -> str:
+        return """
         You must convert an academic article (supplied later as a PDF) into a JSON object conforming to the following Pydantic schema:
 
         class Paper(BaseModel):
@@ -52,13 +56,14 @@ def paper_agent(model_name: str) -> Agent[None, Paper]:
         OUTPUT FORMAT
         - Output a **single JSON object** with keys `title`, `authors`, `content`, `references`
         - Do not include any wrapper text, commentary, or explanations — JSON only
-        """,
-    )
+        """
+
+    return agent
 
 
 def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
     agent: Agent[Paper, List[Impact]] = Agent[Paper, List[Impact]](
-        model_name,
+        model=model_name,
         output_type=List[Impact],
         output_retries=5,
         model_settings=ModelSettings(max_tokens=10_000, temperature=0.0),

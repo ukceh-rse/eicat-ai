@@ -24,7 +24,7 @@ class Pairing(BaseModel):
     confusion matrix values for calculating precision, recall, and F1 metrics.
     """
 
-    prediceted_index: int = Field(..., description="Index of the predicted impact.")
+    predicted_index: int = Field(..., description="Index of the predicted impact.")
     gold_index: Optional[int] = Field(
         None,
         description="Index of the matched gold impact, or None if no suitable match.",
