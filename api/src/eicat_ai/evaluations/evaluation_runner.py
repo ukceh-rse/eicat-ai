@@ -1,9 +1,11 @@
+import datetime
 from pathlib import Path
 from typing import List, Literal
 
 import typer
 from pydantic_ai import Agent
 from pydantic_evals import Case, Dataset
+from pydantic_evals.reporting import EvaluationReport, ReportCase
 from rich.progress import Progress
 from typing_extensions import Annotated
 
@@ -12,7 +14,7 @@ from eicat_ai.converters import extract_impacts
 from eicat_ai.evaluations.evaluators import (
     DEFAULT_EVAL_PATH,
     DEFAULT_MODEL,
-    AccuracyLLMJudge,
+    AccuracyJudge,
 )
 from eicat_ai.models import Impact, Paper, SpeciesNames
 
@@ -35,14 +37,13 @@ def load_evaluation_test_case(
     cases: List[Case] = []
 
     for gold_impacts_path in test_case_path.glob("gold_impacts_*"):
-        species_name = (
-            gold_impacts_path.name.removeprefix("gold_impacts_")
-            .removesuffix(".csv")
-            .replace("_", " ")
-        )
+        species_name_underscored = gold_impacts_path.name.removeprefix(
+            "gold_impacts_"
+        ).removesuffix(".csv")
+        species_name = species_name_underscored.replace("_", " ")
         cases.append(
             Case(
-                name=f"{test_case_path.name} ({species_name})",
+                name=f"{test_case_path.name}",
                 inputs={
                     "agent": agent,
                     "paper": paper,
@@ -51,7 +52,11 @@ def load_evaluation_test_case(
                     ),
                 },
                 expected_output=Impact.load_from_csv(str(gold_impacts_path)),
-                metadata={"paper": paper.title, "species": species_name},
+                metadata={
+                    "paper": paper.title,
+                    "species": species_name,
+                    "output": f"{test_case_path.name}/impacts_{species_name_underscored}.csv",
+                },
             )
         )
     return cases
@@ -71,7 +76,7 @@ def load_dynamic_evaluation_dataset(
             cases.extend(load_evaluation_test_case(test_case, agent))
             progress.advance(task)
             progress.update(task, description="Loading evaluation dataset")
-    return Dataset(cases=cases, evaluators=[AccuracyLLMJudge()])
+    return Dataset(cases=cases, evaluators=[AccuracyJudge()])
 
 
 MODEL_MAP = {
@@ -79,8 +84,20 @@ MODEL_MAP = {
 }
 
 
+def save_evaluation_output(p: Path, cases: list[ReportCase]) -> None:
+    for case in cases:
+        case_path = p / case.metadata["output"]
+        case_path.parent.mkdir(parents=True, exist_ok=True)
+        Impact.save_to_csv(case.output, str(case_path))
+
+
+def generate_eval_output_path() -> Path:
+    ts = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    return Path(f"eicat_ai_eval_{ts}")
+
+
 def main(
-    eval_path: Annotated[
+    data_path: Annotated[
         Path,
         typer.Option(
             "-i", "--input-path", help="Path to the evaluation data directory."
@@ -90,11 +107,20 @@ def main(
         Literal["claude"],
         typer.Option("-m", "--model", help="Model name to use for evaluation"),
     ] = "claude",
+    output_path: Annotated[
+        Path,
+        typer.Option("-o", "--output-path", help="Path to save generated output to."),
+    ] = generate_eval_output_path(),
 ):
     """Evaluate impact extraction model."""
-    eval_dataset: Dataset = load_dynamic_evaluation_dataset(eval_path, MODEL_MAP[model])
-    report = eval_dataset.evaluate_sync(impact_extraction)
+    eval_dataset: Dataset = load_dynamic_evaluation_dataset(data_path, MODEL_MAP[model])
+    report: EvaluationReport = eval_dataset.evaluate_sync(
+        impact_extraction, max_concurrency=5
+    )
+
     report.print(include_metadata=True)
+
+    save_evaluation_output(output_path, report.cases)
 
 
 if __name__ == "__main__":

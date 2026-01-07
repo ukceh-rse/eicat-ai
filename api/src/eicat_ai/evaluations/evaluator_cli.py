@@ -12,6 +12,7 @@ from eicat_ai.evaluations.data_fetcher import main as fetch_main
 from eicat_ai.evaluations.data_prepper import main as prepare_main
 from eicat_ai.evaluations.evaluation_runner import main as run_main
 from eicat_ai.evaluations.evaluators import DEFAULT_EVAL_PATH
+from eicat_ai.evaluations.micro_evaluation import main as eval_main
 
 logger.remove()
 logger.add(sys.stderr, level="INFO")
@@ -70,6 +71,22 @@ def run_command(
 ) -> None:
     """Run impact extraction evaluations."""
     run_main(eval_path, model)
+
+
+@app.command("eval")
+def eval_command(
+    eval_path: Annotated[
+        Path,
+        typer.Option("-e", "--eval-path", help="Path to the evaluation run."),
+    ],
+    data_path: Annotated[
+        Path,
+        typer.Option(
+            "-i", "--input-path", help="Path to the evaluation data directory."
+        ),
+    ] = Path(DEFAULT_EVAL_PATH),
+) -> None:
+    eval_main(eval_path, data_path)
 
 
 if __name__ == "__main__":
