@@ -8,7 +8,7 @@ color:
   foreground: grey
   primary: light-green
 logo:
-  small: "images/ukceh_onestop_logo.png"
+  small: "assets/ukceh_onestop_logo.png"
 typography:
   fonts:
     - family: Gabarito

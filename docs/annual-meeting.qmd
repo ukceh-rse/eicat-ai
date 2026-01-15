@@ -1,15 +1,30 @@
 ---
 title: "LLMs for EICAT"
 title-slide-attributes:
-  data-background-image: images/bg2.png
+  data-background-image: assets/bg2.png
 author: "Tom August & Matt Coole"
 format:
     revealjs:
         transition: slide
         transition-speed: slow
+        background-transition: fade
+include-in-header:
+  text: |
+    <style>
+        .custom-small table {
+            font-size: .8em
+        }
+        li {
+            text-align: justify
+        }
+        video {
+            max-width: 100% !important;
+            max-height: 100% !important;
+        }
+    </style>
 ---
 
-## Agenda {background-image="images/bg3.png"}
+## Agenda {background-image="assets/bg3.png"}
 
 |  |  |
 | ---- | ---- |
@@ -22,25 +37,85 @@ format:
 | Future Work | *15 mins* |
 | Close | *5 mins* |
 
-# Context and Motivation {background-image="images/bg1.png"}
-## EICAT Assessments {background-image="images/bg1.png"}
-- Motivation and aims of work
+# Context and Motivation {background-image="assets/bg1.png"}
+## EICAT Assessments {background-image="assets/bg1.png"}
+- **E**nvironmental **I**mpact **C**lassification for **A**lien **T**axa
+- Assess impcats on native species
+- Identify impact mechnism and category
 
-# System Design Overview {background-image="images/bg2.png"}
-## Design {background-image="images/bg2.png"}
-## Technologies {background-image="images/bg2.png"}
-## Architecture {background-image="images/bg2.png"}
-## Evaluating LLMs {background-image="images/bg2.png"}
-## Accuracy Metrics {background-image="images/bg2.png"}
+## Problem {background-image="assets/bg1.png"}
+- Potentially hundreds of academic texts
+    - Screen
+    - Read
+    - Report
 
-# Demo {background-image="images/bg3.png"}
+## Enter LLMs {background-image="assets/bg1.png"}
+- **L**arge **L**anguage **M**odels
 
-# Feedback Discussion {background-image="images/bg1.png"}
+## Hypothesis {background-image="assets/bg1.png"}
+- Large Language Models will identify invasive-species impacts, based on EICAT guidelines, in academic texts with performance approaching human annotators.
+- Given correctly identified impacts, Large Language Models will assign EICAT categories and confidence Ratings with high accuracy and achieve good scores for justification reasoning.
+- Differences between LLM and gold-standard annotations will be partly explained by inherent “task ambiguity” such that low LLM performance on certain references will coincide with low human–human agreement.
 
-# Interactive Assessment {background-image="images/bg2.png"}
+# System Design Overview {background-image="assets/bg2.png"}
 
-# Humans vs LLMs {background-image="images/bg3.png"}
+## EICAT Workflow {background-image="assets/bg2.png"}
+```{mermaid}
+flowchart LR
+  A(Species Selection & Name Lookup) --> B(Literature Search & Retrieval)
+  B --> C(Data Extraction)
+  C --> D(Report Generation)
 
-# Future work {background-image="images/bg1.png"}
+  F(Data Extraction) --> G(Identify Impact Mechanism)
+  F --> H(Assign EICAT Category)
+  F --> I(Decide Confidence Level)
+  G --> J(Report Generation)
+  H --> J
+  I --> J
+```
 
-# Thank you {background-image="images/bg2.png"}
+## AI Workflow {background-image="assets/bg2.png"}
+```{mermaid}
+flowchart TD
+  A(Convert to MD) --> B(Extract Relevant Text Excerpts)
+  B --> C(Identify Impact Mechanism)
+  C --> D(Assign EICAT Category)
+  D --> E(Decide Confidence Level)
+```
+## Technologies {background-image="assets/bg2.png"}
+## Architecture {background-image="assets/bg2.png"}
+## Gold Standard Data {background-image="assets/bg2.png"}
+|                         |      |
+| ----------------------- | ---: |
+| Impacts                 | 2133 |
+| Invasive Species        | 1096 |
+| Countries               | 104  |
+| Impacted native species | 390  |
+| Referenced texts        | 818  |
+
+## Initial Metrics {background-image="assets/bg2.png"}
+::: custom-small
+
+| Test Case     | Alien Species           | Recall | Precision | F1    |
+| ------------- | ----------------------- | -----: | --------: | ----: |
+| Hernandes     | Acacia auriculiformis   | 1.000  | 1.000     | 1.000 |
+| Garrett       | Foudia madagascariensis | 0.667  | 1.000     | 0.800 |
+| Bednarczuk    | Passer domesticus       | 0.500  | 1.000     | 0.667 |
+| Barilani      | Coturnix japonica       | 0.667  | 1.000     | 0.800 |
+| Lorenzo       | Acacia dealbata         | 0.250  | 0.333     | 0.286 |
+| Average(mean) |                         | 0.617  | 0.867     | 0.711 |
+
+:::
+
+# Demo {background-image="assets/bg3.png"}
+{{< video assets/eicatai.webm>}}
+
+# Feedback Discussion {background-image="assets/bg1.png"}
+
+# Interactive Assessment {background-image="assets/bg2.png"}
+
+# Humans vs LLMs {background-image="assets/bg3.png"}
+
+# Future work {background-image="assets/bg1.png"}
+
+# Thank you {background-image="assets/bg2.png"}
