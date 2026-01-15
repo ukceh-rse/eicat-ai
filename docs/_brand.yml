@@ -1,0 +1,19 @@
+color:
+  palette:
+    light-green: "#3CBB54"
+    green: "#329B46"
+    dark-green: "#1E513D"
+    grey: "#E4EEE6"
+  background: dark-green
+  foreground: grey
+  primary: light-green
+logo:
+  small: "images/ukceh_onestop_logo.png"
+typography:
+  fonts:
+    - family: Gabarito
+      source: google
+  base: Gabarito
+  headings:
+    color: light-green
+    family: Gabarito

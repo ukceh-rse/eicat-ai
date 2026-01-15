@@ -1,0 +1,46 @@
+---
+title: "LLMs for EICAT"
+title-slide-attributes:
+  data-background-image: images/bg2.png
+author: "Tom August & Matt Coole"
+format:
+    revealjs:
+        transition: slide
+        transition-speed: slow
+---
+
+## Agenda {background-image="images/bg3.png"}
+
+|  |  |
+| ---- | ---- |
+| Context and Motivation | *5 mins* |
+| System Design Overview | *5 mins* |
+| Demo | *5 mins* |
+| Feedback Discussion | *10 mins* |
+| Interactive Assessment | *10 mins* |
+| Humans vs LLMs | *5 mins* |
+| Future Work | *15 mins* |
+| Close | *5 mins* |
+
+# Context and Motivation {background-image="images/bg1.png"}
+## EICAT Assessments {background-image="images/bg1.png"}
+- Motivation and aims of work
+
+# System Design Overview {background-image="images/bg2.png"}
+## Design {background-image="images/bg2.png"}
+## Technologies {background-image="images/bg2.png"}
+## Architecture {background-image="images/bg2.png"}
+## Evaluating LLMs {background-image="images/bg2.png"}
+## Accuracy Metrics {background-image="images/bg2.png"}
+
+# Demo {background-image="images/bg3.png"}
+
+# Feedback Discussion {background-image="images/bg1.png"}
+
+# Interactive Assessment {background-image="images/bg2.png"}
+
+# Humans vs LLMs {background-image="images/bg3.png"}
+
+# Future work {background-image="images/bg1.png"}
+
+# Thank you {background-image="images/bg2.png"}
