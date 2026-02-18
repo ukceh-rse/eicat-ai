@@ -1,0 +1,32 @@
+---
+title: "Evaluation protocol"
+---
+
+This page will describe the evaluation protocol applied in OneStop Task 4.4.
+
+To accurately assess the performance of the automatic impact extraction performed by the tool we can perform automatic comparison to the "gold-standard" set of extracted EICAT impact assessments already available on the GISD website. However this does not tell us about how well an LLM performs this task but simply how closely it can match the performance of a single human on the task. To understand the performance of an LLM on this task we must first assess how well humans agree when performing the task, if the EICAT guidelines are robust and unambiguous enoguh to avoid disagreements and how much ambiguity in reference texts might contribute to differences between human annotators.
+
+# Inter Annotator Agreement (IAA)
+To evaluate inter annotator agreement we propose taking a set of referenced texts and tasking multiple human annotators to perform an assessment as the would when performing an EICAT assessment. As such we can then analyse the Inter-Annotator Agreement (IAA) accross a range of reference texts.
+
+## Potential IAA Metrics
+There are a range of potential metrics that could be applied to assess IAA.
+
+### Cohen's Kappa
+Cohen's Kappa can be used for comparing the observations of two annotators assigning categorical labels per observation.
+$$
+\kappa = \frac{p_o - p_e}{1 - p_e}
+$$
+
+this corrects for any potential agreements that might occur by random chance where $p_o$ is the observed agreement and $p_e$ is the expected agreement based on:
+
+$$
+p_e = \frac{1}{N^2}\sum{n_{k1}n_{k2}}
+$$
+
+where $N$ is the number of observations and $n_{k1}$ and $n_{k2}$ are the number of times category $k$ has been labelled by annotators $1$ and $2$ respectively.
+
+Whilst Cohen's Kappa is a very widely adopted metric and allows us to look at the difference agreement in categorical labels such as EICAT category level or mechanism, it only allows us to capture the agreement between 2 annotators.
+
+### Fleiss' Kappa
+### Krippendorff's alpha

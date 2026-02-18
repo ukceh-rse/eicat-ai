@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "Evaluation protocol",
+    "section": "",
+    "text": "This page will describe the evaluation protocol applied in OneStop Task 4.4.\nTo accurately assess the performance of the automatic impact extraction performed by the tool we can perform automatic comparison to the “gold-standard” set of extracted EICAT impact assessments already available on the GISD website. However this does not tell us about how well an LLM performs this task but simply how closely it can match the performance of a single human on the task. To understand the performance of an LLM on this task we must first assess how well humans agree when performing the task, if the EICAT guidelines are robust and unambiguous enoguh to avoid disagreements and how much ambiguity in reference texts might contribute to differences between human annotators."
+  },
+  {
+    "objectID": "about.html#potential-iaa-metrics",
+    "href": "about.html#potential-iaa-metrics",
+    "title": "Evaluation protocol",
+    "section": "Potential IAA Metrics",
+    "text": "Potential IAA Metrics\nThere are a range of potential metrics that could be applied to assess IAA.\n\nCohen’s Kappa\nCohen’s Kappa can be used for comparing the observations of two annotators assigning categorical labels per observation. \\[\n\\kappa = \\frac{p_o - p_e}{1 - p_e}\n\\]\nthis corrects for any potential agreements that might occur by random chance where \\(p_o\\) is the observed agreement and \\(p_e\\) is the expected agreement based on:\n\\[\np_e = \\frac{1}{N^2}\\sum{n_{k1}n_{k2}}\n\\]\nwhere \\(N\\) is the number of observations and \\(n_{k1}\\) and \\(n_{k2}\\) are the number of times category \\(k\\) has been labelled by annotators \\(1\\) and \\(2\\) respectively.\nWhilst Cohen’s Kappa is a very widely adopted metric and allows us to look at the difference agreement in categorical labels such as EICAT category level or mechanism, it only allows us to capture the agreement between 2 annotators.\n\n\nFleiss’ Kappa\n\n\nKrippendorff’s alpha"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "EICAT-AI",
+    "section": "",
+    "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites."
+  }
+]
