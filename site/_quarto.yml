@@ -1,5 +1,6 @@
 project:
   type: website
+  output-dir: ../docs
 
 website:
   title: "EICAT-AI"
@@ -16,6 +17,3 @@ format:
       - brand
     css: styles.css
     toc: true
-
-
-

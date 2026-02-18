@@ -12,3 +12,9 @@ AI tools for assisting in the generation of EICAT assessments.
 
 # Deployment
 - For deployment instructions see [infrastructure/README.md](infrastructure/README.md).
+
+# Docs
+The documentation site is built with quarto. The source files can be found in `/site` and the web pages can be rendered to the `/docs` folder using:
+```bash
+quarto render site
+```
