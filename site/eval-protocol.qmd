@@ -1,5 +1,16 @@
 ---
 title: "Evaluation protocol"
+authors:
+  - name: "Matthew Coole"
+    affiliations:
+      - ref: ukceh
+    email: matcoo@ceh.ac.uk
+    orcid: https://orcid.org/my-orcid?orcid=0000-0002-9279-931X
+affiliations:
+  - id: ukceh
+    name: UKCEH
+    city: Lancaster
+    state: Lancashire
 ---
 
 This page will describe the evaluation protocol applied in OneStop Task 4.4.
@@ -13,7 +24,7 @@ To evaluate inter annotator agreement we propose taking a set of referenced text
 There are a range of potential metrics that could be applied to assess IAA.
 
 ### Cohen's Kappa
-Cohen's Kappa can be used for comparing the observations of two annotators assigning categorical labels per observation.
+@cohen1960coefficient's Kappa can be used for comparing the observations of two annotators assigning categorical labels per observation.
 $$
 \kappa = \frac{p_o - p_e}{1 - p_e}
 $$
@@ -30,3 +41,8 @@ Whilst Cohen's Kappa is a very widely adopted metric and allows us to look at th
 
 ### Fleiss' Kappa
 ### Krippendorff's alpha
+
+## References
+
+::: {#refs}
+:::

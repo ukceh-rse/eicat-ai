@@ -6,9 +6,9 @@ website:
   title: "EICAT-AI"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
-      - about.qmd
+      - eval-protocol.qmd
+
+bibliography: references.bib
 
 format:
   html:

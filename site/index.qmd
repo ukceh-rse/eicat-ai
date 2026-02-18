@@ -2,6 +2,4 @@
 title: "EICAT-AI"
 ---
 
-This is a Quarto website.
-
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+Documents and report pretaining to OneStop task 4.4.

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>EICAT-AI</title>
+<title>Evaluation protocol – EICAT-AI</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,7 +20,27 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -69,6 +89,35 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -91,7 +140,7 @@ ul.task-list li input[type="checkbox"] {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./eval-protocol.html"> 
+    <a class="nav-link active" href="./eval-protocol.html" aria-current="page"> 
 <span class="menu-text">Evaluation protocol</span></a>
   </li>  
 </ul>
@@ -105,22 +154,50 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#inter-annotator-agreement-iaa" id="toc-inter-annotator-agreement-iaa" class="nav-link active" data-scroll-target="#inter-annotator-agreement-iaa">Inter Annotator Agreement (IAA)</a>
+  <ul class="collapse">
+  <li><a href="#potential-iaa-metrics" id="toc-potential-iaa-metrics" class="nav-link" data-scroll-target="#potential-iaa-metrics">Potential IAA Metrics</a>
+  <ul class="collapse">
+  <li><a href="#cohens-kappa" id="toc-cohens-kappa" class="nav-link" data-scroll-target="#cohens-kappa">Cohen’s Kappa</a></li>
+  <li><a href="#fleiss-kappa" id="toc-fleiss-kappa" class="nav-link" data-scroll-target="#fleiss-kappa">Fleiss’ Kappa</a></li>
+  <li><a href="#krippendorffs-alpha" id="toc-krippendorffs-alpha" class="nav-link" data-scroll-target="#krippendorffs-alpha">Krippendorff’s alpha</a></li>
+  </ul></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">EICAT-AI</h1>
+<h1 class="title">Evaluation protocol</h1>
 </div>
 
 
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Matthew Coole <a href="mailto:matcoo@ceh.ac.uk" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> <a href="https://orcid.org/https://orcid.org/my-orcid?orcid=0000-0002-9279-931X" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            UKCEH
+          </p>
+      </div>
+  </div>
 
 <div class="quarto-title-meta">
 
-    
+      
   
     
   </div>
@@ -130,9 +207,44 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Documents and report pretaining to OneStop task 4.4.</p>
+<p>This page will describe the evaluation protocol applied in OneStop Task 4.4.</p>
+<p>To accurately assess the performance of the automatic impact extraction performed by the tool we can perform automatic comparison to the “gold-standard” set of extracted EICAT impact assessments already available on the GISD website. However this does not tell us about how well an LLM performs this task but simply how closely it can match the performance of a single human on the task. To understand the performance of an LLM on this task we must first assess how well humans agree when performing the task, if the EICAT guidelines are robust and unambiguous enoguh to avoid disagreements and how much ambiguity in reference texts might contribute to differences between human annotators.</p>
+<section id="inter-annotator-agreement-iaa" class="level1">
+<h1>Inter Annotator Agreement (IAA)</h1>
+<p>To evaluate inter annotator agreement we propose taking a set of referenced texts and tasking multiple human annotators to perform an assessment as the would when performing an EICAT assessment. As such we can then analyse the Inter-Annotator Agreement (IAA) accross a range of reference texts.</p>
+<section id="potential-iaa-metrics" class="level2">
+<h2 class="anchored" data-anchor-id="potential-iaa-metrics">Potential IAA Metrics</h2>
+<p>There are a range of potential metrics that could be applied to assess IAA.</p>
+<section id="cohens-kappa" class="level3">
+<h3 class="anchored" data-anchor-id="cohens-kappa">Cohen’s Kappa</h3>
+<p><span class="citation" data-cites="cohen1960coefficient">Cohen (<a href="#ref-cohen1960coefficient" role="doc-biblioref">1960</a>)</span>’s Kappa can be used for comparing the observations of two annotators assigning categorical labels per observation. <span class="math display">\[
+\kappa = \frac{p_o - p_e}{1 - p_e}
+\]</span></p>
+<p>this corrects for any potential agreements that might occur by random chance where <span class="math inline">\(p_o\)</span> is the observed agreement and <span class="math inline">\(p_e\)</span> is the expected agreement based on:</p>
+<p><span class="math display">\[
+p_e = \frac{1}{N^2}\sum{n_{k1}n_{k2}}
+\]</span></p>
+<p>where <span class="math inline">\(N\)</span> is the number of observations and <span class="math inline">\(n_{k1}\)</span> and <span class="math inline">\(n_{k2}\)</span> are the number of times category <span class="math inline">\(k\)</span> has been labelled by annotators <span class="math inline">\(1\)</span> and <span class="math inline">\(2\)</span> respectively.</p>
+<p>Whilst Cohen’s Kappa is a very widely adopted metric and allows us to look at the difference agreement in categorical labels such as EICAT category level or mechanism, it only allows us to capture the agreement between 2 annotators.</p>
+</section>
+<section id="fleiss-kappa" class="level3">
+<h3 class="anchored" data-anchor-id="fleiss-kappa">Fleiss’ Kappa</h3>
+</section>
+<section id="krippendorffs-alpha" class="level3">
+<h3 class="anchored" data-anchor-id="krippendorffs-alpha">Krippendorff’s alpha</h3>
+</section>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-cohen1960coefficient" class="csl-entry" role="listitem">
+Cohen, Jacob. 1960. <span>“A Coefficient of Agreement for Nominal Scales.”</span> <em>Educational and Psychological Measurement</em> 20 (1): 37–46.
+</div>
+</div>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
