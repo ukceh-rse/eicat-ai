@@ -161,10 +161,10 @@ window.Quarto = {
   <ul>
   <li><a href="#inter-annotator-agreement-iaa" id="toc-inter-annotator-agreement-iaa" class="nav-link active" data-scroll-target="#inter-annotator-agreement-iaa">Inter Annotator Agreement (IAA)</a>
   <ul class="collapse">
-  <li><a href="#potential-iaa-metrics" id="toc-potential-iaa-metrics" class="nav-link" data-scroll-target="#potential-iaa-metrics">Potential IAA Metrics</a>
+  <li><a href="#paper-assignment" id="toc-paper-assignment" class="nav-link" data-scroll-target="#paper-assignment">Paper Assignment</a></li>
+  <li><a href="#metrics" id="toc-metrics" class="nav-link" data-scroll-target="#metrics">Metrics</a>
   <ul class="collapse">
   <li><a href="#cohens-kappa" id="toc-cohens-kappa" class="nav-link" data-scroll-target="#cohens-kappa">Cohen’s Kappa</a></li>
-  <li><a href="#fleiss-kappa" id="toc-fleiss-kappa" class="nav-link" data-scroll-target="#fleiss-kappa">Fleiss’ Kappa</a></li>
   <li><a href="#krippendorffs-alpha" id="toc-krippendorffs-alpha" class="nav-link" data-scroll-target="#krippendorffs-alpha">Krippendorff’s alpha</a></li>
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
@@ -212,8 +212,18 @@ window.Quarto = {
 <section id="inter-annotator-agreement-iaa" class="level1">
 <h1>Inter Annotator Agreement (IAA)</h1>
 <p>To evaluate inter annotator agreement we propose taking a set of referenced texts and tasking multiple human annotators to perform an assessment as the would when performing an EICAT assessment. As such we can then analyse the Inter-Annotator Agreement (IAA) accross a range of reference texts.</p>
-<section id="potential-iaa-metrics" class="level2">
-<h2 class="anchored" data-anchor-id="potential-iaa-metrics">Potential IAA Metrics</h2>
+<section id="paper-assignment" class="level2">
+<h2 class="anchored" data-anchor-id="paper-assignment">Paper Assignment</h2>
+<p>Our group of volunteer annotators will perform data extraction on 15 papers each. In order to achieve a good statistical coverage we will distribute papers based on <span class="citation" data-cites="cameron2022balanced">Cameron (<a href="#ref-cameron2022balanced" role="doc-biblioref">2022</a>)</span> (BIBD) whereby all annotators will perform data extraction on a small block of papers, then pairwise extraction will be performed on a wider set. This ensures that we will be able to examine agreement across a large number of annotators on the core block and accross a wider number of papers on those annotated pairwise. Further to this we will stratify the block(s) based on the ecological system defined in the paper (marine, freshwater, terrestrial). This will allow us to examine any variablibity in IAA within systems.</p>
+<p>Each annotator will therefore perform data extraction on 15 papers broken down as:</p>
+<ul>
+<li>6 core papers (2 marine, 2 freshwater, 2 terrestrial)</li>
+<li>9 papers additional papers (3 marine, 3 freshwater, 3 terrestrial)</li>
+</ul>
+<p>This means that in total, assuming a pairwise grouping of the 9 additional papers and <span class="math inline">\(n\)</span> annotators, the total number of papers examined in the evaluation will be: <span class="math inline">\(6 + \frac{9n}{2}\)</span>. Assuming around <span class="math inline">\(n \approx 10\)</span> annotators this will yield <span class="math inline">\(\approx 51\)</span> papers.</p>
+</section>
+<section id="metrics" class="level2">
+<h2 class="anchored" data-anchor-id="metrics">Metrics</h2>
 <p>There are a range of potential metrics that could be applied to assess IAA.</p>
 <section id="cohens-kappa" class="level3">
 <h3 class="anchored" data-anchor-id="cohens-kappa">Cohen’s Kappa</h3>
@@ -225,20 +235,26 @@ window.Quarto = {
 p_e = \frac{1}{N^2}\sum{n_{k1}n_{k2}}
 \]</span></p>
 <p>where <span class="math inline">\(N\)</span> is the number of observations and <span class="math inline">\(n_{k1}\)</span> and <span class="math inline">\(n_{k2}\)</span> are the number of times category <span class="math inline">\(k\)</span> has been labelled by annotators <span class="math inline">\(1\)</span> and <span class="math inline">\(2\)</span> respectively.</p>
-<p>Whilst Cohen’s Kappa is a very widely adopted metric and allows us to look at the difference agreement in categorical labels such as EICAT category level or mechanism, it only allows us to capture the agreement between 2 annotators.</p>
-</section>
-<section id="fleiss-kappa" class="level3">
-<h3 class="anchored" data-anchor-id="fleiss-kappa">Fleiss’ Kappa</h3>
+<p>Whilst Cohen’s Kappa is a very widely adopted metric and allows us to look at the difference agreement in categorical labels such as EICAT category level or mechanism, it only allows us to capture the agreement between 2 annotators. This means it could be applied when assessing the IAA for the pairwaise papers used in evaluation but not on the core block annotated by all.</p>
 </section>
 <section id="krippendorffs-alpha" class="level3">
 <h3 class="anchored" data-anchor-id="krippendorffs-alpha">Krippendorff’s alpha</h3>
+<p>Unlike Cohen’s Kappa, <span class="citation" data-cites="krippendorff1980content">Krippendorff (<a href="#ref-krippendorff1980content" role="doc-biblioref">1980</a>)</span>’s alpha can allow us to examine the IAA between more than 2 annotators on the same item which makes it ideal for analysing the core block of papers, as well as being useful for those in the pairwise block. It is defined by: <span class="math display">\[
+\alpha = 1 - \frac{D_o}{D_e}
+\]</span> where <span class="math inline">\(D_o\)</span> is the disagreemnt observed amongst the annotators and <span class="math inline">\(D_e\)</span> is the expected disagreement.</p>
 </section>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-cameron2022balanced" class="csl-entry" role="listitem">
+Cameron, Peter J. 2022. <span>“Balanced Incomplete-Block Designs.”</span> In <em>The Sage Encyclopedia of Research Design</em>. Sage.
+</div>
 <div id="ref-cohen1960coefficient" class="csl-entry" role="listitem">
 Cohen, Jacob. 1960. <span>“A Coefficient of Agreement for Nominal Scales.”</span> <em>Educational and Psychological Measurement</em> 20 (1): 37–46.
+</div>
+<div id="ref-krippendorff1980content" class="csl-entry" role="listitem">
+Krippendorff, K. 1980. <span>“Content Analysis: An Introduction to Its Methodology.”</span> <em>The Sage Commtext Series (5) Show All Parts in This Series</em>.
 </div>
 </div>
 
