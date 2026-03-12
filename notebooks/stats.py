@@ -1,3 +1,5 @@
+import urllib.parse
+
 import pandas as pd
 from pandas import DataFrame
 
@@ -9,8 +11,18 @@ def normalize_impact_string(s):
         s.strip()
         .lower()
         .replace("deseace", "disease")
+        .replace("desease", "disease")
+        .replace("s to native species", "")
         .replace("ecosystems", "ecosystem")
+        .replace("/ ", "/")
     )
+
+
+def create_scholar_link(s):
+    if pd.isna(s) or not isinstance(s, str):
+        return s
+    encoded_query = urllib.parse.quote_plus(s)
+    return f'=HYPERLINK("https://scholar.google.com/scholar?q={encoded_query}"; "{s}")'
 
 
 if __name__ == "__main__":
@@ -25,4 +37,15 @@ if __name__ == "__main__":
 
     print(f"References: {number_of_references}\nSpecies: {unique_species_df}")
     for col in ["EICAT Category", "Impact mechanism", "System", "Kingdom"]:
-        print(eicat_non_dd_df[col].value_counts())
+        print(eicat_non_dd_df[col].value_counts().to_markdown())
+
+    sample: DataFrame = (
+        eicat_non_dd_df.groupby(["EICAT Category", "Impact mechanism"])
+        .apply(lambda x: x.sample(frac=0.3, random_state=42))
+        .reset_index()
+    )
+
+    sample = sample[["EICAT Category", "Impact mechanism", "Species", "Reference"]]
+    sample["Reference"] = sample["Reference"].apply(create_scholar_link)
+
+    sample.to_csv("eicat_startified_sample.csv", index=False)
