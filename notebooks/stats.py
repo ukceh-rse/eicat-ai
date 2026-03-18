@@ -1,6 +1,8 @@
 import urllib.parse
 
 import pandas as pd
+import plotly
+import plotly.graph_objects as go
 from pandas import DataFrame
 
 
@@ -23,6 +25,82 @@ def create_scholar_link(s):
         return s
     encoded_query = urllib.parse.quote_plus(s)
     return f'=HYPERLINK("https://scholar.google.com/scholar?q={encoded_query}"; "{s}")'
+
+
+def create_sankey(df: pd.DataFrame, title: str = "Sankey Diagram") -> go.Figure:
+    df = df[["System", "EICAT Category", "Impact mechanism"]]
+    category_mapping: dict = {
+        "MV": "Massive",
+        "MR": "Major",
+        "MO": "Moderate",
+        "MN": "Minor",
+        "MC": "Minimal",
+    }
+    df["EICAT Category"] = df["EICAT Category"].replace(category_mapping)
+    df.insert(0, "__total__", "Impacts")
+    cols = df.columns.tolist()
+
+    all_labels = pd.unique(df.values.ravel("K")).tolist()
+    label_to_idx = {label: i for i, label in enumerate(all_labels)}
+
+    flows = pd.concat(
+        [
+            df.groupby([source_col, target_col])
+            .size()
+            .reset_index(name="count")
+            .rename(columns={source_col: "source", target_col: "target"})
+            for source_col, target_col in zip(cols[:-1], cols[1:])
+        ]
+    )
+    node_totals = flows.groupby("source")["count"].sum().to_dict()
+    node_totals.update(flows.groupby("target")["count"].sum().to_dict())
+
+    def fmt_label(l):
+        label = l[:25] + "..." if len(l) > 25 else l
+        return f"{label} ({node_totals.get(l, '')})"
+
+    labeled = [fmt_label(l) for l in all_labels]
+
+    palette = plotly.colors.qualitative.D3
+    node_colors = [palette[i % len(palette)] for i, _ in enumerate(all_labels)]
+    node_color_map = dict(zip(all_labels, node_colors))
+
+    def to_rgba(color, alpha=0.3):
+        if color.startswith("#"):
+            r, g, b = plotly.colors.hex_to_rgb(color)
+        else:
+            r, g, b = plotly.colors.unlabel_rgb(color)
+        return f"rgba({r},{g},{b},{alpha})"
+
+    link_colors = [to_rgba(node_color_map[s]) for s in flows["source"]]
+
+    fig = go.Figure(
+        data=[
+            go.Sankey(
+                node=dict(
+                    pad=15,
+                    thickness=20,
+                    line=dict(color="black", width=0.5),
+                    label=labeled,
+                    color=node_colors,
+                ),
+                link=dict(
+                    source=flows.iloc[:, 0].map(label_to_idx).tolist(),
+                    target=flows.iloc[:, 1].map(label_to_idx).tolist(),
+                    value=flows["count"].tolist(),
+                    color=link_colors,
+                ),
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title_text=title,
+        font_size=12,
+        height=800,
+        width=1200,
+    )
+    return fig
 
 
 if __name__ == "__main__":
@@ -49,3 +127,10 @@ if __name__ == "__main__":
     sample["Reference"] = sample["Reference"].apply(create_scholar_link)
 
     sample.to_csv("eicat_startified_sample.csv", index=False)
+
+    fig: go.Figure = create_sankey(
+        eicat_non_dd_df,
+        title="GISD EICAT Categories",
+    )
+    fig.write_image("sankey.png")
+    fig.write_html("sankey.html")
