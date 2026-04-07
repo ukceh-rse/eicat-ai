@@ -5,6 +5,13 @@ import plotly
 import plotly.graph_objects as go
 from pandas import DataFrame
 
+category_mapping: dict = {
+    "MV": "Massive",
+    "MR": "Major",
+    "MO": "Moderate",
+    "MN": "Minor",
+    "MC": "Minimal",
+}
 
 def normalize_impact_string(s):
     if pd.isna(s) or not isinstance(s, str):
@@ -29,13 +36,7 @@ def create_scholar_link(s):
 
 def create_sankey(df: pd.DataFrame, title: str = "Sankey Diagram") -> go.Figure:
     df = df[["System", "EICAT Category", "Impact mechanism"]]
-    category_mapping: dict = {
-        "MV": "Massive",
-        "MR": "Major",
-        "MO": "Moderate",
-        "MN": "Minor",
-        "MC": "Minimal",
-    }
+
     df["EICAT Category"] = df["EICAT Category"].replace(category_mapping)
     df.insert(0, "__total__", "Impacts")
     cols = df.columns.tolist()
@@ -118,19 +119,20 @@ if __name__ == "__main__":
         print(eicat_non_dd_df[col].value_counts().to_markdown())
 
     sample: DataFrame = (
-        eicat_non_dd_df.groupby(["EICAT Category", "Impact mechanism"])
+        eicat_non_dd_df.groupby(["EICAT Category", "Impact mechanism", "System"])
         .apply(lambda x: x.sample(frac=0.3, random_state=42))
         .reset_index()
     )
 
-    sample = sample[["EICAT Category", "Impact mechanism", "Species", "Reference"]]
+    sample = sample[["EICAT Category", "Impact mechanism", "Species", "System", "Reference"]]
     sample["Reference"] = sample["Reference"].apply(create_scholar_link)
+    sample["EICAT Category"] = sample["EICAT Category"].replace(category_mapping)
 
     sample.to_csv("eicat_startified_sample.csv", index=False)
 
     fig: go.Figure = create_sankey(
         eicat_non_dd_df,
-        title="GISD EICAT Categories",
+        title="GISD EICAT Distribution Flows",
     )
     fig.write_image("sankey.png")
     fig.write_html("sankey.html")
