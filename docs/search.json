@@ -1,10 +1,17 @@
 [
   {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "EICAT-AI",
+    "section": "",
+    "text": "Documents and report pretaining to OneStop task 4.4."
+  },
+  {
     "objectID": "eval-protocol.html",
     "href": "eval-protocol.html",
     "title": "Evaluation protocol",
     "section": "",
-    "text": "To accurately assess the performance of the automatic impact extraction performed by the tool we can perform automatic comparison to the “gold-standard” set of extracted EICAT impact assessments already available on the GISD website. However this does not tell us about how well an LLM performs this task but simply how closely it can match the performance of a single human on the task. To understand the performance of an LLM on this task we must first assess how well humans agree when performing the task, if the EICAT guidelines are robust and unambiguous enoguh to avoid disagreements and how much ambiguity in reference texts might contribute to differences between human annotators."
+    "text": "WarningDraft\n\n\n\nThis document is currently in draft and subject to change.\nTo accurately assess the performance of the automatic impact extraction performed by the tool we can perform automatic comparison to the “gold-standard” set of extracted EICAT impact assessments already available on the GISD website. However this does not tell us about how well an LLM performs this task but simply how closely it can match the performance of a single human on the task. To understand the performance of an LLM on this task we must first assess how well humans agree when performing the task, if the EICAT guidelines are robust and unambiguous enoguh to avoid disagreements and how much ambiguity in reference texts might contribute to differences between human annotators."
   },
   {
     "objectID": "eval-protocol.html#paper-assignment",
@@ -54,12 +61,5 @@
     "title": "Evaluation protocol",
     "section": "References",
     "text": "References\n\n\nCameron, Peter J. 2022. “Balanced Incomplete-Block Designs.” In The Sage Encyclopedia of Research Design. Sage. https://doi.org/10.4135/9781071812082.n35.\n\n\nCohen, Jacob. 1960. “A Coefficient of Agreement for Nominal Scales.” Educational and Psychological Measurement 20 (1): 37–46. https://doi.org/10.1177/001316446002000104.\n\n\n———. 1968. “Weighted Kappa: Nominal Scale Agreement Provision for Scaled Disagreement or Partial Credit.” Psychological Bulletin 70 (4): 213–20. https://doi.org/10.1037/h0026256.\n\n\nKrippendorff, Klaus. 1980. Content Analysis: An Introduction to Its Methodology. Newbury Park, CA: Sage Publications.\n\n\nLalor, John P, Hao Wu, and Hong Yu. 2019. “Learning Latent Parameters Without Human Response Patterns: Item Response Theory with Artificial Crowds.” In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing, 4249–59. https://doi.org/10.18653/v1/D19-1434.\n\n\nLandis, J Richard, and Gary G Koch. 1977. “The Measurement of Observer Agreement for Categorical Data.” Biometrics 33 (1): 159–74. https://doi.org/10.2307/2529310.\n\n\nLeonardelli, Elisa, Stefano Menini, Alessio Palmero Aprosio, Marco Guerini, and Sara Tonelli. 2021. “Agreeing to Disagree: Annotating Offensive Language Datasets with Annotators’ Disagreement.” In Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, 10528–39. https://doi.org/10.18653/v1/2021.emnlp-main.822.\n\n\nSchroeder, Kayla, and Zach Wood-Doughty. 2024. “Can You Trust LLM Judgments? Reliability of LLM-as-a-Judge.” arXiv Preprint arXiv:2412.12509. https://arxiv.org/abs/2412.12509.\n\n\nZheng, Lianmin, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, et al. 2023. “Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena.” In Advances in Neural Information Processing Systems. Vol. 36. https://arxiv.org/abs/2306.05685."
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "EICAT-AI",
-    "section": "",
-    "text": "Documents and report pretaining to OneStop task 4.4."
   }
 ]

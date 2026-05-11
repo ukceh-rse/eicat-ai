@@ -13,6 +13,11 @@ affiliations:
     state: Lancashire
 ---
 
+::: {.callout-warning}
+## Draft
+This document is currently in draft and subject to change.
+:::
+
 To accurately assess the performance of the automatic impact extraction performed by the tool we can perform automatic comparison to the "gold-standard" set of extracted EICAT impact assessments already available on the GISD website. However this does not tell us about how well an LLM performs this task but simply how closely it can match the performance of a single human on the task. To understand the performance of an LLM on this task we must first assess how well humans agree when performing the task, if the EICAT guidelines are robust and unambiguous enoguh to avoid disagreements and how much ambiguity in reference texts might contribute to differences between human annotators.
 
 # Inter Annotator Agreement (IAA)
