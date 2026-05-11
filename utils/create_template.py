@@ -68,6 +68,7 @@ if __name__ == "__main__":
                 "values": [
                     "Massive",
                     "Major",
+                    "Moderate",
                     "Minor",
                     "Minimal Concern",
                     "Data Deficient",
