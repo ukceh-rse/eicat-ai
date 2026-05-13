@@ -67,3 +67,12 @@ Results report precision, recall, and F1 scores.
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for local development setup.
+=======
+# Deployment
+- For deployment instructions see [infrastructure/README.md](infrastructure/README.md).
+
+# Docs
+The documentation site is built with quarto. The source files can be found in `/site` and the web pages can be rendered to the `/docs` folder using:
+```bash
+quarto render site
+```

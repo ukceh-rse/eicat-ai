@@ -1,0 +1,65 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "EICAT-AI",
+    "section": "",
+    "text": "Documents and report pretaining to OneStop task 4.4."
+  },
+  {
+    "objectID": "eval-protocol.html",
+    "href": "eval-protocol.html",
+    "title": "Evaluation protocol",
+    "section": "",
+    "text": "WarningDraft\n\n\n\nThis document is currently in draft and subject to change.\nTo accurately assess the performance of the automatic impact extraction performed by the tool we can perform automatic comparison to the “gold-standard” set of extracted EICAT impact assessments already available on the GISD website. However this does not tell us about how well an LLM performs this task but simply how closely it can match the performance of a single human on the task. To understand the performance of an LLM on this task we must first assess how well humans agree when performing the task, if the EICAT guidelines are robust and unambiguous enoguh to avoid disagreements and how much ambiguity in reference texts might contribute to differences between human annotators."
+  },
+  {
+    "objectID": "eval-protocol.html#paper-assignment",
+    "href": "eval-protocol.html#paper-assignment",
+    "title": "Evaluation protocol",
+    "section": "Paper Assignment",
+    "text": "Paper Assignment\nOur group of volunteer annotators will perform data extraction on 15 papers each. In order to achieve a good statistical coverage we will distribute papers based on Cameron (2022) (BIBD) whereby all annotators will perform data extraction on a small block of papers, then pairwise extraction will be performed on a wider set. This ensures that we will be able to examine agreement across a large number of annotators on the core block and accross a wider number of papers on those annotated pairwise. Further to this we will stratify the block(s) based on the ecological system defined in the paper (marine, freshwater, terrestrial). This will allow us to examine any variablibity in IAA within systems.\nEach annotator will therefore perform data extraction on 15 papers broken down as:\n\n6 core papers\n9 papers additional papers\n\nThis means that in total, assuming a pairwise grouping of the 9 additional papers and \\(n\\) annotators, the total number of papers examined in the evaluation will be: \\(6 + \\frac{9n}{2}\\). Assuming around \\(n \\approx 10\\) annotators this will yield \\(\\approx 51\\) papers.\nPapers will be selected from those available in the GISD to ensure a representative distribution across ecological system, EICAT impact category, and impact mechanism. The breakdown of available GISD assessments across these dimensions is shown below, and will guide the selection so that no single category or mechanism dominates the annotation set.\n\n\n\nBreakdown of GISD impact assessments by system, EICAT category, and impact mechanism."
+  },
+  {
+    "objectID": "eval-protocol.html#metrics",
+    "href": "eval-protocol.html#metrics",
+    "title": "Evaluation protocol",
+    "section": "Metrics",
+    "text": "Metrics\nThere are a range of potential metrics that could be applied to assess IAA.\n\nCohen’s Kappa\nCohen (1960)’s Kappa can be used for comparing the observations of two annotators assigning categorical labels per observation. \\[\n\\kappa = \\frac{p_o - p_e}{1 - p_e}\n\\]\nwhere \\(p_o\\) is the observed agreement and \\(p_e\\) is the expected agreement by chance, correcting for the possibility that annotators agree randomly rather than substantively.\nWhilst Cohen’s Kappa is widely adopted and allows us to examine agreement in categorical labels such as EICAT category or mechanism, it only captures agreement between 2 annotators. This means it is applicable to the pairwise papers but not to the core block annotated by all.\n\n\nKrippendorff’s alpha\nUnlike Cohen’s Kappa, Krippendorff (1980)’s alpha can allow us to examine the IAA between more than 2 annotators on the same item which makes it ideal for analysing the core block of papers, as well as being useful for those in the pairwise block. It is defined by: \\[\n\\alpha = 1 - \\frac{D_o}{D_e}\n\\]\nwhere \\(D_o\\) is the observed disagreement and \\(D_e\\) is the expected disagreement, both computed from a coincidence matrix of annotator value assignments. It additionally accepts a scale-appropriate metric function, distinguishing between nominal disagreements (any mismatch counts equally) and ordinal disagreements (larger gaps between values are penalised more heavily).\n\n\nInterpreting Agreement Scores\nBoth Cohen’s Kappa and Krippendorff’s alpha produce values in the range \\([-1, 1]\\), where \\(0\\) indicates agreement no better than chance and \\(1\\) indicates perfect agreement. We adopt the conventional interpretation thresholds proposed by Landis and Koch (1977):\n\n\n\nScore\nInterpretation\n\n\n\n\n\\(&lt; 0.00\\)\nPoor\n\n\n\\(0.00\\)–\\(0.20\\)\nSlight\n\n\n\\(0.21\\)–\\(0.40\\)\nFair\n\n\n\\(0.41\\)–\\(0.60\\)\nModerate\n\n\n\\(0.61\\)–\\(0.80\\)\nSubstantial\n\n\n\\(0.81\\)–\\(1.00\\)\nAlmost perfect\n\n\n\n\n\nWeighted Cohen’s Kappa\nThe EICAT impact categories are ordinal (MC &lt; MN &lt; MO &lt; MR &lt; MV), meaning that a disagreement between adjacent categories (e.g. MN and MO) is less severe than one spanning many levels (e.g. MC and MV). Standard Cohen’s Kappa treats all disagreements as equivalent, which is inappropriate for ordinal data. We therefore also compute a linearly weighted Kappa Cohen (1968) for category-level agreement, in which the penalty for disagreement scales with the distance between the two assigned categories."
+  },
+  {
+    "objectID": "eval-protocol.html#evaluation-dimensions",
+    "href": "eval-protocol.html#evaluation-dimensions",
+    "title": "Evaluation protocol",
+    "section": "Evaluation Dimensions",
+    "text": "Evaluation Dimensions\nIAA should be assessed independently across the key structured fields produced during data extraction. These are summarised below:\n\n\n\nField\nScale\nMetric\n\n\n\n\nImpact mechanism\nNominal\nCohen’s Kappa / Krippendorff’s alpha\n\n\nEICAT category\nOrdinal\nWeighted Kappa / Krippendorff’s alpha\n\n\nConfidence rating\nOrdinal\nWeighted Kappa\n\n\nImpact presence/absence\nBinary\nPrecision, Recall, F1\n\n\n\nAgreement may vary substantially across these dimensions. Category-level agreement is likely to be lower than mechanism-level agreement, given the greater ambiguity in the EICAT category boundaries relative to the relatively clear-cut distinctions between impact mechanisms. Evidence text and impacted species lists do not admit direct agreement scoring and will be examined qualitatively."
+  },
+  {
+    "objectID": "eval-protocol.html#gold-standard-construction",
+    "href": "eval-protocol.html#gold-standard-construction",
+    "title": "Evaluation protocol",
+    "section": "Gold Standard Construction",
+    "text": "Gold Standard Construction\nThe Global Invasive Species Database (GISD) provides a curated collection of EICAT impact assessments for a large number of invasive species, each linked to the reference from which the assessment was derived. We use these as the basis for an automated evaluation dataset. For each reference-species pairing in the GISD data, a test case is constructed comprising a directory containing the bibliographic reference for the source paper along with the set of gold standard impact records attributed to that paper. Where multiple species are assessed from the same reference, a separate test case is produced per species. The source PDF for each reference must be retrieved manually.\nIt should be noted that GISD assessments represent the judgement of a single assessor and are therefore subject to the same inter-annotator variability characterised in the IAA section. Performance against this gold standard should be interpreted in that context: agreement with the gold standard that falls within the range of observed human-to-human variability indicates that the system is performing at a broadly human-equivalent level."
+  },
+  {
+    "objectID": "eval-protocol.html#llm-as-judge-evaluation",
+    "href": "eval-protocol.html#llm-as-judge-evaluation",
+    "title": "Evaluation protocol",
+    "section": "LLM-as-Judge Evaluation",
+    "text": "LLM-as-Judge Evaluation\nComparing extracted impacts to a gold standard presents a challenge of semantic equivalence. An LLM and a human assessor may describe the same observed impact in different terms, making exact string matching unreliable. To address this, we employ an LLM-as-judge approach in which a separate LLM agent semantically pairs predicted impacts with gold standard impacts.\nThe judge agent is presented with both lists of impacts and tasked with determining which predicted impacts correspond to which gold standard impacts, based on semantic similarity of the evidence text and the identified mechanism. Minor wording differences are treated as compatible matches. For each predicted impact the judge produces either a matched gold standard impact or None if no suitable match exists. TP, FP, and FN counts are derived from these pairings.\nIt should be noted that using a model from the same family for both extraction and evaluation introduces a potential for systematic bias, as the judge may be more inclined to favour the phrasing or interpretation style of the extracting model. This should be taken into account when interpreting results, particularly when comparing system performance against the human IAA baseline."
+  },
+  {
+    "objectID": "eval-protocol.html#metrics-1",
+    "href": "eval-protocol.html#metrics-1",
+    "title": "Evaluation protocol",
+    "section": "Metrics",
+    "text": "Metrics\nFrom the TP, FP, and FN counts produced by the judge, precision, recall, and F1 score are computed at the level of impact detection:\n\\[\n\\text{precision} = \\frac{TP}{TP + FP}, \\quad \\text{recall} = \\frac{TP}{TP + FN}, \\quad F_1 = \\frac{2 \\cdot \\text{precision} \\cdot \\text{recall}}{\\text{precision} + \\text{recall}}\n\\]\nThese metrics assess whether the system correctly identifies the impacts present in a paper without hallucinating spurious ones. For matched impact pairs, category classification and confidence rating accuracy are assessed separately using the weighted Kappa formulation described in Section 1.2.4."
+  },
+  {
+    "objectID": "eval-protocol.html#references",
+    "href": "eval-protocol.html#references",
+    "title": "Evaluation protocol",
+    "section": "References",
+    "text": "References\n\n\nCameron, Peter J. 2022. “Balanced Incomplete-Block Designs.” In The Sage Encyclopedia of Research Design. Sage. https://doi.org/10.4135/9781071812082.n35.\n\n\nCohen, Jacob. 1960. “A Coefficient of Agreement for Nominal Scales.” Educational and Psychological Measurement 20 (1): 37–46. https://doi.org/10.1177/001316446002000104.\n\n\n———. 1968. “Weighted Kappa: Nominal Scale Agreement Provision for Scaled Disagreement or Partial Credit.” Psychological Bulletin 70 (4): 213–20. https://doi.org/10.1037/h0026256.\n\n\nKrippendorff, Klaus. 1980. Content Analysis: An Introduction to Its Methodology. Newbury Park, CA: Sage Publications.\n\n\nLalor, John P, Hao Wu, and Hong Yu. 2019. “Learning Latent Parameters Without Human Response Patterns: Item Response Theory with Artificial Crowds.” In Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing, 4249–59. https://doi.org/10.18653/v1/D19-1434.\n\n\nLandis, J Richard, and Gary G Koch. 1977. “The Measurement of Observer Agreement for Categorical Data.” Biometrics 33 (1): 159–74. https://doi.org/10.2307/2529310.\n\n\nLeonardelli, Elisa, Stefano Menini, Alessio Palmero Aprosio, Marco Guerini, and Sara Tonelli. 2021. “Agreeing to Disagree: Annotating Offensive Language Datasets with Annotators’ Disagreement.” In Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, 10528–39. https://doi.org/10.18653/v1/2021.emnlp-main.822.\n\n\nSchroeder, Kayla, and Zach Wood-Doughty. 2024. “Can You Trust LLM Judgments? Reliability of LLM-as-a-Judge.” arXiv Preprint arXiv:2412.12509. https://arxiv.org/abs/2412.12509.\n\n\nZheng, Lianmin, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, et al. 2023. “Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena.” In Advances in Neural Information Processing Systems. Vol. 36. https://arxiv.org/abs/2306.05685."
+  }
+]

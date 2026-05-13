@@ -1,0 +1,19 @@
+project:
+  type: website
+  output-dir: ../docs
+
+website:
+  title: "EICAT-AI"
+  navbar:
+    left:
+      - eval-protocol.qmd
+
+bibliography: references.bib
+
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+    css: styles.css
+    toc: true
