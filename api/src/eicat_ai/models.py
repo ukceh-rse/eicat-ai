@@ -42,12 +42,32 @@ class Category(str, Enum):
     @property
     def description(self) -> str:
         return {
-            "MV": "Irreversible extinction of a native species",
-            "MR": "Extinction of local population of native species that is reversible",
-            "MO": "Decline in native species population",
-            "MN": "No decline in population but some impact on performance of native species",
-            "MC": "No significant impact observed",
-            "DD": "No data available or impacts or insufficient time for impacts to be observed",
+            "MV": (
+                "Naturally irreversible community change through local, sub-population, or global "
+                "extinction of at least one native taxon caused by the alien taxon"
+            ),
+            "MR": (
+                "Community change through local or sub-population extinction of at least one native "
+                "taxon, which would be naturally reversible if the alien taxon were removed "
+                "(i.e. the native taxon would return within 10 years or 3 generations)"
+            ),
+            "MO": (
+                "Decline in population size of at least one native taxon, but no local extinction "
+                "documented"
+            ),
+            "MN": (
+                "Reductions in individual performance (e.g. growth, reproduction, survival) of "
+                "native taxa, but no decline in native population sizes"
+            ),
+            "MC": (
+                "Negligible impacts; impact has been actively studied but only negligible effects "
+                "on individual performance detected; no population-level change observed. "
+                "Requires evidence of study — not merely absence of data."
+            ),
+            "DD": (
+                "Alien populations are known to exist in the wild, but current evidence is "
+                "insufficient to assign an impact category"
+            ),
         }[self.value]
 
 
@@ -70,20 +90,56 @@ class Mechanism(str, Enum):
     @property
     def description(self) -> str:
         return {
-            "Competition": "Competing for resources with native species (e.g. food, water, space)",
-            "Predation": "Alien taxa predate on native species",
-            "Hybridisation": "Alien species mating with native species, eliminating native population",
-            "Transmission of diseases to native species": "Passing diseases to native species",
-            "Parasitism": "Alien taxa parasites native species",
-            "Poisoning/toxicity": "Alien taxa is poisonous or toxic through ingestion or contact with native species",
-            "Bio-fouling": "Physically impeding native species",
-            "Grazing/herbivory/browsing": "Alien species eating a native plant species",
-            "Chemical Impact on ecosystem": "Chemical changes to environment caused by alien species that affect native species",
-            "Physical Impact on ecosystem": "Physical changes to environment caused by alien species that affect native species",
-            "Structural Impact on ecosystem": "Structural changes to environment caused by alien species that affect native species",
+            "Competition": (
+                "The alien taxon competes with native taxa for resources (e.g. food, water, space), "
+                "leading to deleterious impact on native taxa"
+            ),
+            "Predation": (
+                "The alien taxon predates on native taxa, leading to deleterious impact on native taxa"
+            ),
+            "Hybridisation": (
+                "The alien taxon hybridises with native taxa, leading to deleterious impact on native "
+                "taxa (impacts can range from reduced individual fitness through to local population "
+                "extinction via genetic swamping)"
+            ),
+            "Transmission of diseases to native species": (
+                "The alien taxon transmits diseases or acts as a host or vector for pathogens "
+                "affecting native taxa, leading to deleterious impact on native taxa"
+            ),
+            "Parasitism": (
+                "The alien taxon parasitises native taxa, leading to deleterious impact on native taxa"
+            ),
+            "Poisoning/toxicity": (
+                "The alien taxon is toxic or allergenic by ingestion, inhalation, or contact, or is "
+                "allelopathic to plants, leading to deleterious impact on native taxa"
+            ),
+            "Bio-fouling": (
+                "Accumulation of individuals of the alien taxon on the surface of a native taxon "
+                "(bio-fouling), or other direct physical disturbances not involved in a trophic "
+                "interaction (e.g. trampling, rubbing), leading to deleterious impact on native taxa"
+            ),
+            "Grazing/herbivory/browsing": (
+                "Grazing, herbivory, or browsing by the alien taxon leads to deleterious impact on "
+                "native taxa"
+            ),
+            "Chemical Impact on ecosystem": (
+                "The alien taxon causes changes to the chemical characteristics of the native "
+                "environment (e.g. pH, nutrient and/or water cycling), leading to deleterious impact "
+                "on native taxa"
+            ),
+            "Physical Impact on ecosystem": (
+                "The alien taxon causes changes to the physical characteristics of the native "
+                "environment (e.g. disturbance or light regimes), leading to deleterious impact on "
+                "native taxa"
+            ),
+            "Structural Impact on ecosystem": (
+                "The alien taxon causes changes to the habitat structure (e.g. changes in "
+                "architecture or complexity), leading to deleterious impact on native taxa"
+            ),
             "Indirect impacts through interactions with other species": (
-                "Potential for the alien species to increase one native species population "
-                "that as a result decrease the population of another native species"
+                "The alien taxon interacts with other native or alien taxa (e.g. through pollination, "
+                "seed dispersal, apparent competition, mesopredator release, or any other mechanism), "
+                "facilitating indirect deleterious impact on native taxa"
             ),
         }[self.value]
 
@@ -92,6 +148,14 @@ class Impact(BaseModel):
     alien_species: str = Field(description="Name of the alien species causing the impact")
     mechanism: Mechanism = Field(description="Mechanism by which the impact occurs.")
     category: Category = Field(description="EICAT impact category.")
+    reversibility: Optional[Literal["reversible", "irreversible", "unknown"]] = Field(
+        default=None,
+        description=(
+            "Whether any documented local extinction is naturally reversible within 10 years or "
+            "3 generations (whichever is longer) if the alien taxon were removed. Required when "
+            "category is MR or MV; leave null for all other categories."
+        ),
+    )
     evidence: str = Field(description="Verbatim excerpt from the paper supporting this impact.")
     confidence: Optional[Literal["Low", "Medium", "High"]] = Field(default=None)
     justification: str = Field(description="Explanation of confidence rating.")
@@ -108,6 +172,7 @@ class Impact(BaseModel):
                     impact.alien_species,
                     impact.mechanism.value,
                     impact.category.value,
+                    impact.reversibility or "",
                     impact.evidence,
                     impact.confidence,
                     impact.justification,
@@ -121,10 +186,12 @@ class Impact(BaseModel):
             for row in csv.DictReader(f):
                 impacted = [s.strip() for s in row["Impacted native species"].split(",") if s.strip()]
                 confidence_raw = row["Confidence rating"].strip()
+                reversibility_raw = row.get("reversibility", "").strip() or None
                 impacts.append(cls(
                     alien_species=row["Species"],
                     mechanism=Mechanism(row["Impact mechanism"]),
                     category=Category(row["EICAT Category"]),
+                    reversibility=reversibility_raw,
                     evidence=row["Evidence for EICAT impact category"],
                     confidence=confidence_raw or None,
                     justification=row["Justification for confidence rating"],
