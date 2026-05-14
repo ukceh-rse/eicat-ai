@@ -6,13 +6,12 @@ import {
 } from '@mui/material'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import DeleteIcon from '@mui/icons-material/Delete'
-import DescriptionIcon from '@mui/icons-material/Description'
 import DownloadIcon from '@mui/icons-material/Download'
+import { useNavigate } from 'react-router'
 import { api } from '../api/client'
 import { usePapersStore } from '../store/papersStore'
 import { PaperStatusChip } from '../components/StatusChips'
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
-import PaperViewerDialog from '../components/PaperViewerDialog'
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`
@@ -25,9 +24,9 @@ export default function PapersPage() {
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [viewing, setViewing] = useState<{ id: string; filename: string } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; filename: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
 
   useEffect(() => { fetch() }, [fetch])
 
@@ -112,7 +111,7 @@ export default function PapersPage() {
                 <TableCell>Size</TableCell>
                 <TableCell>Uploaded</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell width={88} />
+                <TableCell width={72} />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -123,36 +122,36 @@ export default function PapersPage() {
                   </TableCell>
                 </TableRow>
               ) : papers.map((p) => (
-                <TableRow key={p.id} hover>
+                <TableRow
+                  key={p.id}
+                  hover
+                  sx={{ cursor: p.status === 'ready' ? 'pointer' : 'default' }}
+                  onClick={() => { if (p.status === 'ready') navigate(`/papers/${p.id}`) }}
+                >
                   <TableCell>{p.filename}</TableCell>
                   <TableCell>{formatBytes(p.size)}</TableCell>
                   <TableCell>{new Date(p.uploaded_at).toLocaleDateString()}</TableCell>
                   <TableCell><PaperStatusChip status={p.status} /></TableCell>
                   <TableCell padding="none" sx={{ whiteSpace: 'nowrap' }}>
-                    {p.status === 'ready' && (
-                      <Tooltip title="View content">
-                        <IconButton
-                          size="small"
-                          onClick={() => setViewing({ id: p.id, filename: p.filename })}
-                          sx={{ mr: 0.5 }}
-                        >
-                          <DescriptionIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
                     <Tooltip title="Download PDF">
                       <IconButton
                         size="small"
                         component="a"
                         href={api.papers.download(p.id)}
                         download={p.filename}
+                        onClick={(e) => e.stopPropagation()}
                         sx={{ mr: 0.5 }}
                       >
                         <DownloadIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => setPendingDelete({ id: p.id, filename: p.filename })} color="error" sx={{ mr: 1 }}>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        sx={{ mr: 1 }}
+                        onClick={(e) => { e.stopPropagation(); setPendingDelete({ id: p.id, filename: p.filename }) }}
+                      >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -162,14 +161,6 @@ export default function PapersPage() {
             </TableBody>
           </Table>
         </TableContainer>
-      )}
-
-      {viewing && (
-        <PaperViewerDialog
-          paperId={viewing.id}
-          filename={viewing.filename}
-          onClose={() => setViewing(null)}
-        />
       )}
 
       <ConfirmDeleteDialog
