@@ -38,22 +38,20 @@ export default function PaperDetailPage() {
 
   return (
     <Box>
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          component="button"
-          underline="hover"
-          color="inherit"
-          onClick={() => navigate('/papers')}
-          sx={{ background: 'none', border: 'none', cursor: 'pointer', p: 0, font: 'inherit' }}
-        >
-          Papers
-        </Link>
-        <Typography color="text.primary">{paper.filename}</Typography>
-      </Breadcrumbs>
-
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>{paper.filename}</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+        <Box>
+          <Breadcrumbs sx={{ mb: 0.75 }}>
+            <Link
+              component="button"
+              underline="hover"
+              color="inherit"
+              onClick={() => navigate('/papers')}
+              sx={{ background: 'none', border: 'none', cursor: 'pointer', p: 0, font: 'inherit' }}
+            >
+              Papers
+            </Link>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>{paper.filename}</Typography>
+          </Breadcrumbs>
           <PaperStatusChip status={paper.status} />
         </Box>
         <Tooltip title="Download PDF">

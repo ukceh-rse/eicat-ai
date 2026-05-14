@@ -61,35 +61,31 @@ export default function AnalysisDetailPage() {
 
   return (
     <Box>
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          component="button"
-          underline="hover"
-          color="inherit"
-          onClick={() => navigate('/analyses')}
-          sx={{ background: 'none', border: 'none', cursor: 'pointer', p: 0, font: 'inherit' }}
-        >
-          Analyses
-        </Link>
-        <Typography color="text.primary" sx={{ fontStyle: 'italic' }}>
-          {analysis.species.scientific_name}
-        </Typography>
-      </Breadcrumbs>
-
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 600, fontStyle: 'italic' }}>
-            {analysis.species.scientific_name}
-          </Typography>
+          <Breadcrumbs sx={{ mb: 0.75 }}>
+            <Link
+              component="button"
+              underline="hover"
+              color="inherit"
+              onClick={() => navigate('/analyses')}
+              sx={{ background: 'none', border: 'none', cursor: 'pointer', p: 0, font: 'inherit' }}
+            >
+              Analyses
+            </Link>
+            <Typography variant="h5" sx={{ fontWeight: 600, fontStyle: 'italic' }}>
+              {analysis.species.scientific_name}
+            </Typography>
+          </Breadcrumbs>
           {analysis.species.vernacular_names.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 0.5, mb: 0.75, flexWrap: 'wrap' }}>
               {analysis.species.vernacular_names.map((n) => (
                 <Chip key={n} label={n} size="small" variant="outlined" />
               ))}
             </Box>
           )}
-          <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <AnalysisStatusChip status={analysis.status} />
             {analysis.status === 'running' && <CircularProgress size={16} />}
           </Box>
