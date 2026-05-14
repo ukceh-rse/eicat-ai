@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import {
-  Box, Button, Chip, CircularProgress, Dialog, DialogActions,
-  DialogContent, DialogTitle, TextField,
+  Box, Button, CircularProgress, Dialog, DialogActions,
+  DialogContent, DialogTitle, IconButton, TextField, Typography,
 } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import CloseIcon from '@mui/icons-material/Close'
 import { useAnalysesStore } from '../store/analysesStore'
 import { useNavigate } from 'react-router'
 
@@ -15,26 +17,23 @@ export default function CreateAnalysisDialog({ open, onClose }: Props) {
   const navigate = useNavigate()
   const create = useAnalysesStore((s) => s.create)
   const [scientificName, setScientificName] = useState('')
-  const [vernacularInput, setVernacularInput] = useState('')
-  const [vernacularNames, setVernacularNames] = useState<string[]>([])
+  const [otherNames, setOtherNames] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const addVernacular = () => {
-    const v = vernacularInput.trim()
-    if (v && !vernacularNames.includes(v)) setVernacularNames((n) => [...n, v])
-    setVernacularInput('')
-  }
+  const updateName = (i: number, value: string) =>
+    setOtherNames((names) => names.map((n, idx) => (idx === i ? value : n)))
+
+  const removeName = (i: number) =>
+    setOtherNames((names) => names.filter((_, idx) => idx !== i))
 
   const handleSubmit = async () => {
     if (!scientificName.trim()) return
     setSubmitting(true)
     setError(null)
     try {
-      const analysis = await create({
-        scientific_name: scientificName.trim(),
-        vernacular_names: vernacularNames,
-      })
+      const vernacular_names = [...new Set(otherNames.map((n) => n.trim()).filter(Boolean))]
+      const analysis = await create({ scientific_name: scientificName.trim(), vernacular_names })
       handleClose()
       navigate(`/analyses/${analysis.id}`)
     } catch (e) {
@@ -45,8 +44,7 @@ export default function CreateAnalysisDialog({ open, onClose }: Props) {
 
   const handleClose = () => {
     setScientificName('')
-    setVernacularNames([])
-    setVernacularInput('')
+    setOtherNames([])
     setError(null)
     onClose()
   }
@@ -59,34 +57,41 @@ export default function CreateAnalysisDialog({ open, onClose }: Props) {
           label="Scientific Name"
           value={scientificName}
           onChange={(e) => setScientificName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}
           fullWidth
           required
           autoFocus
           margin="normal"
         />
-        <TextField
-          label="Vernacular / Common Name"
-          value={vernacularInput}
-          onChange={(e) => setVernacularInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addVernacular() } }}
-          fullWidth
-          margin="normal"
-          helperText="Press Enter to add each name"
-        />
-        {vernacularNames.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-            {vernacularNames.map((n) => (
-              <Chip
-                key={n}
-                label={n}
-                size="small"
-                onDelete={() => setVernacularNames((v) => v.filter((x) => x !== n))}
-              />
-            ))}
+
+        <Box sx={{ mt: 2, mb: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="body2" color="text.secondary">
+            Other names (vernacular, common etc.)
+          </Typography>
+          <IconButton size="small" onClick={() => setOtherNames((n) => [...n, ''])}>
+            <AddIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        {otherNames.map((name, i) => (
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+            <TextField
+              value={name}
+              onChange={(e) => updateName(i, e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}
+              size="small"
+              fullWidth
+              autoFocus={name === ''}
+              placeholder={`Name ${i + 1}`}
+            />
+            <IconButton size="small" onClick={() => removeName(i)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
           </Box>
-        )}
+        ))}
+
         {error && (
-          <Box sx={{ mt: 1, color: 'error.main', fontSize: 14 }}>{error}</Box>
+          <Box sx={{ mt: 2, color: 'error.main', fontSize: 14 }}>{error}</Box>
         )}
       </DialogContent>
       <DialogActions>
