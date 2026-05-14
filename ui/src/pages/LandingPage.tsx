@@ -43,7 +43,7 @@ export default function LandingPage() {
         <Box component="img"
           src="/OneSTOP final logo-black.svg"
           alt="OneSTOP"
-          sx={{ height: 36, mb: 6 }}
+          sx={{ height: 108, mb: 6 }}
         />
 
         <Typography variant="h3" sx={{
