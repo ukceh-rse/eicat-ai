@@ -11,6 +11,7 @@ import DownloadIcon from '@mui/icons-material/Download'
 import { api } from '../api/client'
 import { usePapersStore } from '../store/papersStore'
 import { PaperStatusChip } from '../components/StatusChips'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 import PaperViewerDialog from '../components/PaperViewerDialog'
 
 function formatBytes(n: number) {
@@ -25,6 +26,7 @@ export default function PapersPage() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viewing, setViewing] = useState<{ id: string; filename: string } | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; filename: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetch() }, [fetch])
@@ -150,7 +152,7 @@ export default function PapersPage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => remove(p.id)} color="error" sx={{ mr: 1 }}>
+                      <IconButton size="small" onClick={() => setPendingDelete({ id: p.id, filename: p.filename })} color="error" sx={{ mr: 1 }}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -169,6 +171,14 @@ export default function PapersPage() {
           onClose={() => setViewing(null)}
         />
       )}
+
+      <ConfirmDeleteDialog
+        open={!!pendingDelete}
+        title="Delete paper?"
+        message={`"${pendingDelete?.filename}" will be permanently deleted.`}
+        onConfirm={() => remove(pendingDelete!.id)}
+        onClose={() => setPendingDelete(null)}
+      />
     </Box>
   )
 }

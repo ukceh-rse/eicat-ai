@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import {
-  Box, Button, CircularProgress, Paper,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
+  Box, Button, CircularProgress, IconButton, Paper,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { useNavigate } from 'react-router'
 import { useAnalysesStore } from '../store/analysesStore'
 import { AnalysisStatusChip } from '../components/StatusChips'
 import CreateAnalysisDialog from '../components/CreateAnalysisDialog'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 
 export default function AnalysesPage() {
-  const { analyses, loading, fetch } = useAnalysesStore()
+  const { analyses, loading, fetch, remove } = useAnalysesStore()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => { fetch() }, [fetch])
@@ -39,12 +42,13 @@ export default function AnalysesPage() {
                 <TableCell>Papers</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Created</TableCell>
+                <TableCell width={48} />
               </TableRow>
             </TableHead>
             <TableBody>
               {analyses.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.disabled' }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6, color: 'text.disabled' }}>
                     No analyses yet
                   </TableCell>
                 </TableRow>
@@ -64,6 +68,21 @@ export default function AnalysesPage() {
                   <TableCell>{a.paper_ids.length}</TableCell>
                   <TableCell><AnalysisStatusChip status={a.status} /></TableCell>
                   <TableCell>{new Date(a.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell padding="none">
+                    <Tooltip title="Delete analysis">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        sx={{ mr: 0.5 }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setPendingDelete({ id: a.id, name: a.species.scientific_name })
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -72,6 +91,14 @@ export default function AnalysesPage() {
       )}
 
       <CreateAnalysisDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+
+      <ConfirmDeleteDialog
+        open={!!pendingDelete}
+        title="Delete analysis?"
+        message={`"${pendingDelete?.name}" and all its results will be permanently deleted.`}
+        onConfirm={() => remove(pendingDelete!.id)}
+        onClose={() => setPendingDelete(null)}
+      />
     </Box>
   )
 }

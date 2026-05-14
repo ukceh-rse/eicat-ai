@@ -13,6 +13,7 @@ import { useAnalysesStore } from '../store/analysesStore'
 import { usePapersStore } from '../store/papersStore'
 import { AnalysisStatusChip } from '../components/StatusChips'
 import AddPapersDialog from '../components/AddPapersDialog'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 import ImpactsPanel from '../components/ImpactsPanel'
 
 export default function AnalysisDetailPage() {
@@ -21,6 +22,7 @@ export default function AnalysisDetailPage() {
   const { analyses, fetch, remove, removePaper, run, refresh } = useAnalysesStore()
   const { papers, fetch: fetchPapers } = usePapersStore()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [fetched, setFetched] = useState(false)
 
@@ -55,6 +57,7 @@ export default function AnalysisDetailPage() {
     await remove(id!)
     navigate('/analyses')
   }
+
 
   return (
     <Box>
@@ -105,7 +108,7 @@ export default function AnalysisDetailPage() {
             {analysis.status === 'running' ? 'Running…' : 'Run Analysis'}
           </Button>
           <Tooltip title="Delete analysis">
-            <IconButton onClick={handleDelete} color="error">
+            <IconButton onClick={() => setDeleteDialogOpen(true)} color="error">
               <DeleteIcon />
             </IconButton>
           </Tooltip>
@@ -166,6 +169,14 @@ export default function AnalysisDetailPage() {
         onClose={() => setAddDialogOpen(false)}
         analysisId={id!}
         existingPaperIds={analysis.paper_ids}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        title="Delete analysis?"
+        message={`"${analysis.species.scientific_name}" and all its results will be permanently deleted.`}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteDialogOpen(false)}
       />
     </Box>
   )
