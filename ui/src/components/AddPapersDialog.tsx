@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
+  DialogTitle, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
 } from '@mui/material'
 import { usePapersStore } from '../store/papersStore'
 import { useAnalysesStore } from '../store/analysesStore'
@@ -51,13 +51,13 @@ export default function AddPapersDialog({ open, onClose, analysisId, existingPap
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>Add Papers</DialogTitle>
-      <DialogContent sx={{ px: 0, pb: 0 }}>
+      <DialogContent sx={{ px: 3, pt: 1, pb: 2 }}>
         {available.length === 0 ? (
-          <Typography color="text.secondary" sx={{ px: 3, py: 2 }}>
+          <Typography color="text.secondary" sx={{ py: 2 }}>
             No ready papers available to add.
           </Typography>
         ) : (
-          <TableContainer>
+          <TableContainer component={Paper} variant="outlined">
             <Table>
               <TableHead>
                 <TableRow>
