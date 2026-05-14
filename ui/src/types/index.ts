@@ -1,42 +1,38 @@
-export interface UploadMetadata {
-  id: string;
-  filename: string;
-  content_type: string;
-  size: number;
-  timestamp: string;
-  markdown_available: boolean;
-  impacts_available: boolean;
-}
+export type PaperStatus = 'converting' | 'ready' | 'failed'
+export type AnalysisStatus = 'pending' | 'running' | 'completed' | 'failed'
 
-export interface TaskStatus {
-  status: 'started' | 'processing' | 'completed' | 'failed';
-  progress?: string;
-  timestamp: string;
-  error?: string;
-  upload_id?: string;
-  result_available?: boolean;
-}
-
-export interface Paper {
-  title: string;
-  authors: string[];
-  abstract: string;
-  content: string;
-  references: string[];
-  metadata: Record<string, any>;
+export interface PaperResponse {
+  id: string
+  filename: string
+  content_type: string
+  size: number
+  uploaded_at: string
+  status: PaperStatus
+  error?: string
 }
 
 export interface SpeciesNames {
-  scientific_name: string;
-  vernacular_names: string[];
+  scientific_name: string
+  vernacular_names: string[]
 }
 
 export interface Impact {
-  alien_species: string;
-  mechanism: string;
-  category: string;
-  evidence: string;
-  confidence?: string;
-  justification: string;
-  impacted_species: string[];
+  alien_species: string
+  mechanism: string
+  category: string
+  evidence: string
+  confidence?: string
+  justification: string
+  impacted_species: string[]
+}
+
+export interface AnalysisResponse {
+  id: string
+  species: SpeciesNames
+  created_at: string
+  status: AnalysisStatus
+  paper_ids: string[]
+  results: Record<string, Impact[]>
+  error?: string
+  completed_at?: string
 }

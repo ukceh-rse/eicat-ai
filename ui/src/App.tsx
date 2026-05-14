@@ -1,23 +1,21 @@
-import { BrowserRouter, Routes, Route } from 'react-router'
-import Upload from './components/Upload'
-import Navigation from './components/Navigation'
-import Analysis from './components/Analysis'
-import Home from './components/Home'
-import './App.css'
+import { BrowserRouter, Route, Routes } from 'react-router'
+import Layout from './components/Layout'
+import LandingPage from './pages/LandingPage'
+import PapersPage from './pages/PapersPage'
+import AnalysesPage from './pages/AnalysesPage'
+import AnalysisDetailPage from './pages/AnalysisDetailPage'
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
-      <Navigation />
-      <div className="main-content">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/analysis" element={<Analysis />} />
-          <Route path="/upload" element={<Upload />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route element={<Layout />}>
+          <Route path="papers" element={<PapersPage />} />
+          <Route path="analyses" element={<AnalysesPage />} />
+          <Route path="analyses/:id" element={<AnalysisDetailPage />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
   )
 }
-
-export default App

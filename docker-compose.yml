@@ -42,7 +42,7 @@ services:
       - AWS_PROFILE=${AWS_PROFILE:-default}
       - AWS_REGION=${AWS_REGION:-eu-west-2}
     volumes:
-      - ~/.aws:/root/.aws:ro
+      - ~/.aws:/root/.aws
     depends_on:
       - grobid
       - tei-stylesheets-api
