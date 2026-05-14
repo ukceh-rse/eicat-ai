@@ -5,6 +5,7 @@ import {
 } from '@mui/material'
 import { usePapersStore } from '../store/papersStore'
 import { useAnalysesStore } from '../store/analysesStore'
+import { PaperStatusChip } from './StatusChips'
 
 interface Props {
   open: boolean
@@ -48,7 +49,7 @@ export default function AddPapersDialog({ open, onClose, analysisId, existingPap
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>Add Papers</DialogTitle>
       <DialogContent sx={{ px: 0, pb: 0 }}>
         {available.length === 0 ? (
@@ -57,12 +58,14 @@ export default function AddPapersDialog({ open, onClose, analysisId, existingPap
           </Typography>
         ) : (
           <TableContainer>
-            <Table size="small">
+            <Table>
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox" />
                   <TableCell>Filename</TableCell>
-                  <TableCell align="right">Size</TableCell>
+                  <TableCell>Size</TableCell>
+                  <TableCell>Uploaded</TableCell>
+                  <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -70,17 +73,17 @@ export default function AddPapersDialog({ open, onClose, analysisId, existingPap
                   <TableRow
                     key={p.id}
                     hover
-                    onClick={() => toggle(p.id)}
                     selected={selected.has(p.id)}
+                    onClick={() => toggle(p.id)}
                     sx={{ cursor: 'pointer' }}
                   >
                     <TableCell padding="checkbox">
                       <Checkbox checked={selected.has(p.id)} size="small" disableRipple />
                     </TableCell>
                     <TableCell>{p.filename}</TableCell>
-                    <TableCell align="right" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                      {formatBytes(p.size)}
-                    </TableCell>
+                    <TableCell>{formatBytes(p.size)}</TableCell>
+                    <TableCell>{new Date(p.uploaded_at).toLocaleDateString()}</TableCell>
+                    <TableCell><PaperStatusChip status={p.status} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
