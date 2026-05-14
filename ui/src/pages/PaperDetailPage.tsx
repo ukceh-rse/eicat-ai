@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import {
-  Box, Breadcrumbs, CircularProgress, IconButton, Link, Paper, Tooltip, Typography,
+  Box, CircularProgress, IconButton, Paper, Tooltip, Typography,
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import ReactMarkdown from 'react-markdown'
@@ -40,18 +40,17 @@ export default function PaperDetailPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
-          <Breadcrumbs sx={{ mb: 0.75 }}>
-            <Link
-              component="button"
-              underline="hover"
-              color="inherit"
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
+            <Typography
+              variant="h5"
               onClick={() => navigate('/papers')}
-              sx={{ background: 'none', border: 'none', cursor: 'pointer', p: 0, font: 'inherit' }}
+              sx={{ fontWeight: 400, color: 'text.secondary', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
             >
               Papers
-            </Link>
+            </Typography>
+            <Typography variant="h5" color="text.disabled">/</Typography>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>{paper.filename}</Typography>
-          </Breadcrumbs>
+          </Box>
           <PaperStatusChip status={paper.status} />
         </Box>
         <Tooltip title="Download PDF">

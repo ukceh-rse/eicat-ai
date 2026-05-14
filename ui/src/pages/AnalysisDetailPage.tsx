@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import {
-  Alert, Box, Breadcrumbs, Button, Chip, CircularProgress,
-  Divider, IconButton, Link, List, ListItem, ListItemText,
+  Alert, Box, Button, Chip, CircularProgress,
+  Divider, IconButton, List, ListItem, ListItemText,
   Paper, Tooltip, Typography,
 } from '@mui/material'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -64,20 +64,19 @@ export default function AnalysisDetailPage() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
-          <Breadcrumbs sx={{ mb: 0.75 }}>
-            <Link
-              component="button"
-              underline="hover"
-              color="inherit"
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
+            <Typography
+              variant="h5"
               onClick={() => navigate('/analyses')}
-              sx={{ background: 'none', border: 'none', cursor: 'pointer', p: 0, font: 'inherit' }}
+              sx={{ fontWeight: 400, color: 'text.secondary', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
             >
               Analyses
-            </Link>
+            </Typography>
+            <Typography variant="h5" color="text.disabled">/</Typography>
             <Typography variant="h5" sx={{ fontWeight: 600, fontStyle: 'italic' }}>
               {analysis.species.scientific_name}
             </Typography>
-          </Breadcrumbs>
+          </Box>
           {analysis.species.vernacular_names.length > 0 && (
             <Box sx={{ display: 'flex', gap: 0.5, mb: 0.75, flexWrap: 'wrap' }}>
               {analysis.species.vernacular_names.map((n) => (
