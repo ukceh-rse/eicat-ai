@@ -155,10 +155,10 @@ export default function AnalysisDetailPage() {
 
       {/* Results */}
       {analysis.status === 'completed' && (
-        <Box>
+        <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Results</Typography>
           <ImpactsPanel results={analysis.results} papers={papers} />
-        </Box>
+        </Paper>
       )}
 
       <AddPapersDialog

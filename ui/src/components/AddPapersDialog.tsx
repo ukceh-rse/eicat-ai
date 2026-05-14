@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography,
+  DialogTitle, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
 } from '@mui/material'
 import { usePapersStore } from '../store/papersStore'
 import { useAnalysesStore } from '../store/analysesStore'
@@ -11,6 +11,12 @@ interface Props {
   onClose: () => void
   analysisId: string
   existingPaperIds: string[]
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`
+  if (n < 1_048_576) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / 1_048_576).toFixed(1)} MB`
 }
 
 export default function AddPapersDialog({ open, onClose, analysisId, existingPaperIds }: Props) {
@@ -44,24 +50,42 @@ export default function AddPapersDialog({ open, onClose, analysisId, existingPap
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Add Papers</DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ px: 0, pb: 0 }}>
         {available.length === 0 ? (
-          <Typography color="text.secondary" sx={{ py: 2 }}>
+          <Typography color="text.secondary" sx={{ px: 3, py: 2 }}>
             No ready papers available to add.
           </Typography>
         ) : (
-          <List dense disablePadding>
-            {available.map((p) => (
-              <ListItem key={p.id} disablePadding>
-                <ListItemButton onClick={() => toggle(p.id)}>
-                  <ListItemIcon>
-                    <Checkbox edge="start" checked={selected.has(p.id)} disableRipple />
-                  </ListItemIcon>
-                  <ListItemText primary={p.filename} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell padding="checkbox" />
+                  <TableCell>Filename</TableCell>
+                  <TableCell align="right">Size</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {available.map((p) => (
+                  <TableRow
+                    key={p.id}
+                    hover
+                    onClick={() => toggle(p.id)}
+                    selected={selected.has(p.id)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    <TableCell padding="checkbox">
+                      <Checkbox checked={selected.has(p.id)} size="small" disableRipple />
+                    </TableCell>
+                    <TableCell>{p.filename}</TableCell>
+                    <TableCell align="right" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                      {formatBytes(p.size)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </DialogContent>
       <DialogActions>

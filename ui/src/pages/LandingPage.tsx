@@ -1,4 +1,4 @@
-import { Box, Button, Divider, Typography } from '@mui/material'
+import { AppBar, Box, Button, Divider, Toolbar, Typography } from '@mui/material'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import { useNavigate } from 'react-router'
 
@@ -7,25 +7,31 @@ export default function LandingPage() {
 
   return (
     <Box sx={{
-      minHeight: '100vh',
+      height: '100vh',
       display: 'flex',
       flexDirection: 'column',
+      overflow: 'hidden',
       bgcolor: '#ffffff',
     }}>
-      {/* Header bar */}
-      <Box sx={{
-        px: 4, py: 2,
-        display: 'flex', alignItems: 'center',
-        borderBottom: '1px solid', borderColor: '#E4EEE6',
+      {/* Header bar — matches Layout AppBar */}
+      <AppBar position="static" elevation={0} sx={{
+        bgcolor: '#ffffff',
+        borderBottom: '1px solid #E4EEE6',
       }}>
-        <Box component="img" src="/OneSTOP symbol white.svg" alt="OneSTOP"
-          sx={{ height: 28, filter: 'invert(27%) sepia(51%) saturate(500%) hue-rotate(95deg) brightness(50%)' }}
-        />
-      </Box>
+        <Toolbar>
+          <Box component="img" src="/OneSTOP symbol.svg" alt="OneSTOP"
+            sx={{ height: 28, mr: 1.5 }}
+          />
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#1E513D', letterSpacing: 0.5 }}>
+            EICAT AI
+          </Typography>
+        </Toolbar>
+      </AppBar>
 
       {/* Hero */}
       <Box sx={{
         flex: 1,
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -37,7 +43,7 @@ export default function LandingPage() {
         <Box component="img"
           src="/OneSTOP final logo-black.svg"
           alt="OneSTOP"
-          sx={{ height: 72, mb: 6 }}
+          sx={{ height: 36, mb: 6 }}
         />
 
         <Typography variant="h3" sx={{
@@ -87,7 +93,8 @@ export default function LandingPage() {
       <Box sx={{
         px: 4, py: 2,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderTop: '1px solid', borderColor: '#E4EEE6',
+        borderTop: '1px solid #E4EEE6',
+        flexShrink: 0,
       }}>
         <Typography variant="caption" color="text.disabled">
           Part of the OneSTOP project · Funded by the European Union · Horizon Europe ID 101180559
