@@ -1,40 +1,36 @@
-FROM eclipse-temurin:11-jre-jammy
+FROM eclipse-temurin:11-jre-jammy AS builder
 
-LABEL maintainer="TEI Stylesheets Docker Container"
-LABEL description="Docker container for TEI Stylesheets teitohtml conversion tool"
-
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ant \
     curl \
     git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch v7.60.0 https://github.com/TEIC/Stylesheets.git /stylesheets \
+    && chmod +x /stylesheets/bin/*
+
+FROM eclipse-temurin:11-jre-jammy
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ant \
     software-properties-common \
     && add-apt-repository ppa:deadsnakes/ppa \
     && apt-get update \
-    && apt-get install -y python3.13 python3.13-venv python3.13-dev \
+    && apt-get install -y --no-install-recommends \
+    python3.13 python3.13-venv python3.13-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
-
-WORKDIR /app
-
-RUN git clone https://github.com/TEIC/Stylesheets.git stylesheets
-
-WORKDIR /app/stylesheets
-
-RUN chmod +x bin/*
+COPY --from=builder /stylesheets /app/stylesheets
 
 ENV APPHOME=/app/stylesheets
 ENV SAXONJAR=/app/stylesheets/lib/saxon10he.jar
 ENV TRANGJAR=/app/stylesheets/lib/trang.jar
 ENV PATH="/app/stylesheets/bin:${PATH}"
 
-COPY pyproject.toml uv.lock main.py /app/api/
 WORKDIR /app/api
-
+COPY pyproject.toml uv.lock main.py ./
 RUN uv sync --frozen
 
-WORKDIR /app/api
-
 EXPOSE 8000
-
 CMD ["uv", "run", "python", "main.py"]

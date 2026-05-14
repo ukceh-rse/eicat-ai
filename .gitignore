@@ -1,4 +1,5 @@
 data/
+mongo-data/
 **/eval-data/
 /.quarto/
 **/*.quarto_ipynb

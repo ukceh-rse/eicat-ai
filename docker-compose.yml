@@ -1,4 +1,14 @@
 services:
+  mongodb:
+    image: mongo:8.0.21
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo-data:/data/db
+    networks:
+      - eicat-network
+    restart: unless-stopped
+
   tei-stylesheets-api:
     build:
       context: ./tei-stylesheets-api
@@ -26,11 +36,17 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - GROBID_URL=grobid
-      - TEI_URL=tei-stylesheets-api
+      - EICAT_GROBID_URL=http://grobid:8070
+      - EICAT_TEI_URL=http://tei-stylesheets-api:8000
+      - EICAT_MONGODB_URL=mongodb://mongodb:27017
+      - AWS_PROFILE=${AWS_PROFILE:-default}
+      - AWS_REGION=${AWS_REGION:-eu-west-2}
+    volumes:
+      - ~/.aws:/root/.aws:ro
     depends_on:
       - grobid
       - tei-stylesheets-api
+      - mongodb
     container_name: eicat-api
     networks:
       - eicat-network
@@ -51,3 +67,4 @@ services:
 networks:
   eicat-network:
     driver: bridge
+

@@ -1,21 +1,23 @@
-from pydantic_settings import BaseSettings
 from pydantic import Field
-from pathlib import Path
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    data_path: Path = Field(
-        default=Path("../eicat_data"), description="Path to data directory"
-    )
-    host: str = Field(default="0.0.0.0", description="Host to bind to")
-    port: int = Field(default=8000, description="Port to bind to")
-    reload: bool = Field(default=False, description="Enable auto-reload")
+    mongodb_url: str = Field(default="mongodb://localhost:27017")
+    mongodb_db: str = Field(default="eicat_ai")
+    grobid_url: str = Field(default="http://localhost:8070")
+    tei_url: str = Field(default="http://localhost:8000")
+    model: str = Field(default="bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0")
+    host: str = Field(default="0.0.0.0")
+    port: int = Field(default=8000)
+    reload: bool = Field(default=False)
 
-    class Config:
-        env_file = ".env"
-        env_prefix = "EICAT_"
-        case_sensitive = (False,)
-        extra = "ignore"
+    model_config = {
+        "env_file": ".env",
+        "env_prefix": "EICAT_",
+        "case_sensitive": False,
+        "extra": "ignore",
+    }
 
 
 settings = Settings()
