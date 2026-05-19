@@ -3,23 +3,45 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
+_LOOKUPS_SHEET = "Lookups"
 
-def create_data_validation(col_letter, col_def):
-    values = col_def.get("values")
+
+def _add_validation(ws, wb: Workbook, col_letter: str, col_def: dict) -> None:
+    values = col_def["values"]
     name = col_def["name"]
-    quoted = ", ".join(f'"{v}"' for v in values)
-    dv = DataValidation(
-        type="list",
-        formula1=f'"{",".join(values)}"',
-        allow_blank=True,
-        showDropDown=False,
-        showErrorMessage=True,
-        errorTitle="Invalid value",
-        error=f"Column {name} only accepts {quoted}.",
-        showInputMessage=True,
-    )
-    dv.sqref = f"{col_letter}2:{col_letter}{100}"
-    return dv
+
+    if any("," in str(v) for v in values):
+        # Values contain commas — store them in a hidden sheet and reference by range,
+        # because Excel's comma-delimited inline formula can't handle commas in values.
+        if _LOOKUPS_SHEET not in wb.sheetnames:
+            lws = wb.create_sheet(_LOOKUPS_SHEET)
+            lws.sheet_state = "hidden"
+            next_col = 1
+        else:
+            lws = wb[_LOOKUPS_SHEET]
+            next_col = lws.max_column + 1
+
+        for row_idx, v in enumerate(values, start=1):
+            lws.cell(row=row_idx, column=next_col, value=v)
+
+        lc = get_column_letter(next_col)
+        formula1 = f"={_LOOKUPS_SHEET}!${lc}$1:${lc}${len(values)}"
+        dv = DataValidation(type="list", formula1=formula1, allow_blank=True, showDropDown=False)
+    else:
+        quoted = ", ".join(f'"{v}"' for v in values)
+        dv = DataValidation(
+            type="list",
+            formula1=f'"{",".join(values)}"',
+            allow_blank=True,
+            showDropDown=False,
+            showErrorMessage=True,
+            errorTitle="Invalid value",
+            error=f"Column {name} only accepts {quoted}.",
+            showInputMessage=True,
+        )
+
+    dv.sqref = f"{col_letter}2:{col_letter}100"
+    ws.add_data_validation(dv)
 
 
 def create_template(
@@ -34,22 +56,19 @@ def create_template(
         col_letter = get_column_letter(col_idx)
 
         if col_def.get("values"):
-            dv = create_data_validation(col_letter, col_def)
-            ws.add_data_validation(dv)
+            _add_validation(ws, wb, col_letter, col_def)
 
         candidates = [col_def["name"]] + (col_def.get("values") or [])
-        max_width = col_def.get("width") or min(
-            max(len(s) for s in candidates), max_col_width
-        )
+        max_width = col_def.get("width") or min(max(len(s) for s in candidates), max_col_width)
         ws.column_dimensions[col_letter].width = max_width
         for row in range(2, 101):
             ws.cell(row=row, column=col_idx).alignment = Alignment(wrap_text=True)
 
     wb.save(output_path)
-    print(f"Template saved to: {output_path}")
 
 
 if __name__ == "__main__":
+    print(f"Template saved to: template.xlsx")
     create_template(
         columns=[
             {
@@ -65,31 +84,15 @@ if __name__ == "__main__":
             },
             {
                 "name": "EICAT Category",
-                "values": [
-                    "Massive",
-                    "Major",
-                    "Moderate",
-                    "Minor",
-                    "Minimal Concern",
-                    "Data Deficient",
-                    "No Alien Populations",
-                ],
+                "values": ["Massive", "Major", "Moderate", "Minor", "Minimal Concern", "Data Deficient", "No Alien Populations"],
             },
             {
                 "name": "Impact mechanism",
                 "values": [
-                    "Competition",
-                    "Predation",
-                    "Hybridisation",
-                    "Transmission of disease",
-                    "Parasitism",
-                    "Poisoning/toxicity",
-                    "Bio-fouling or other direct physical disturbance",
-                    "Grazing/herbivory/browsing",
-                    "Chemical impact on ecosystem",
-                    "Physical impact on ecosystem",
-                    "Structural impact on ecosystem",
-                    "Indirect impacts through interactions with other species",
+                    "Competition", "Predation", "Hybridisation", "Transmission of disease",
+                    "Parasitism", "Poisoning/toxicity", "Bio-fouling or other direct physical disturbance",
+                    "Grazing/herbivory/browsing", "Chemical impact on ecosystem", "Physical impact on ecosystem",
+                    "Structural impact on ecosystem", "Indirect impacts through interactions with other species",
                 ],
             },
             {"name": "Evidence for EICAT impact category", "width": 60},
