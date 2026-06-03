@@ -5,6 +5,7 @@ import PapersPage from './pages/PapersPage'
 import PaperDetailPage from './pages/PaperDetailPage'
 import AnalysesPage from './pages/AnalysesPage'
 import AnalysisDetailPage from './pages/AnalysisDetailPage'
+import AnalysisPaperDetailPage from './pages/AnalysisPaperDetailPage'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="papers/:id" element={<PaperDetailPage />} />
           <Route path="analyses" element={<AnalysesPage />} />
           <Route path="analyses/:id" element={<AnalysisDetailPage />} />
+          <Route path="analyses/:id/papers/:paperId" element={<AnalysisPaperDetailPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

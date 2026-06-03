@@ -1,6 +1,6 @@
 import { Chip } from '@mui/material'
 
-const config: Record<string, { label: string; bg: string; color: string }> = {
+export const categoryConfig: Record<string, { label: string; bg: string; color: string }> = {
   MV: { label: 'MV – Massive',        bg: '#b71c1c', color: '#fff' },
   MR: { label: 'MR – Major',          bg: '#e53935', color: '#fff' },
   MO: { label: 'MO – Moderate',       bg: '#f57c00', color: '#fff' },
@@ -10,7 +10,7 @@ const config: Record<string, { label: string; bg: string; color: string }> = {
 }
 
 export function CategoryChip({ category }: { category: string }) {
-  const cfg = config[category] ?? { label: category, bg: '#9e9e9e', color: '#fff' }
+  const cfg = categoryConfig[category] ?? { label: category, bg: '#9e9e9e', color: '#fff' }
   return (
     <Chip
       label={cfg.label}

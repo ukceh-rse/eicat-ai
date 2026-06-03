@@ -5,13 +5,14 @@ import {
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import DescriptionIcon from '@mui/icons-material/Description'
+import { useNavigate } from 'react-router'
 import { CategoryChip } from './CategoryChip'
-import PaperViewerDialog from './PaperViewerDialog'
 import type { Impact, PaperResponse } from '../types'
 
 interface Props {
   results: Record<string, Impact[]>
   papers: PaperResponse[]
+  analysisId: string
 }
 
 function paperName(papers: PaperResponse[], id: string) {
@@ -40,8 +41,8 @@ function EvidenceCell({ text }: { text: string }) {
   )
 }
 
-export default function ImpactsPanel({ results, papers }: Props) {
-  const [viewingPaper, setViewingPaper] = useState<{ id: string; filename: string } | null>(null)
+export default function ImpactsPanel({ results, papers, analysisId }: Props) {
+  const navigate = useNavigate()
   const entries = Object.entries(results).filter(([, impacts]) => impacts.length > 0)
 
   if (entries.length === 0) {
@@ -65,7 +66,7 @@ export default function ImpactsPanel({ results, papers }: Props) {
                 <Tooltip title="View paper content">
                   <IconButton
                     size="small"
-                    onClick={(e) => { e.stopPropagation(); setViewingPaper({ id: paperId, filename }) }}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/analyses/${analysisId}/papers/${paperId}`) }}
                   >
                     <DescriptionIcon fontSize="small" />
                   </IconButton>
@@ -102,13 +103,6 @@ export default function ImpactsPanel({ results, papers }: Props) {
         )
       })}
 
-      {viewingPaper && (
-        <PaperViewerDialog
-          paperId={viewingPaper.id}
-          filename={viewingPaper.filename}
-          onClose={() => setViewingPaper(null)}
-        />
-      )}
     </Box>
   )
 }
