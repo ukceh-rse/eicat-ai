@@ -1,6 +1,8 @@
-# Evaluation: inter-annotator agreement
+# Evaluation
 
-Tooling for the IAA study described in [`site/eval-protocol.qmd`](../site/eval-protocol.qmd).
+Tooling for the IAA study described in [`site/eval-protocol.qmd`](../site/eval-protocol.qmd),
+plus an end-to-end evaluation of the application against GISD
+([`gisd_eval.py`](#gisd_evalpy--end-to-end-evaluation-against-gisd), at the end of this file).
 
 Dependencies are managed by [`pyproject.toml`](pyproject.toml); run scripts with
 `uv run --project eval eval/<script>.py` from the repo root, no separate install step.
@@ -144,3 +146,98 @@ Every figure is written twice:
   spotting annotator-specific data issues (e.g. a formatting quirk in one person's
   spreadsheet) that an anonymized chart makes hard to trace back to a source file.
 
+## `gisd_eval.py` — end-to-end evaluation against GISD
+
+Benchmarks the **running application** rather than the extraction agent in isolation: each
+paper takes the same path as a user upload (API → GROBID → TEI → Markdown → analysis) and the
+impacts the app returns are scored against the GISD EICAT rows for that reference and species.
+Needs Docker and AWS credentials with Bedrock access (the API container mounts `~/.aws` and
+inherits `AWS_PROFILE`/`AWS_REGION`).
+
+### 1. Fetch the GISD data
+
+```bash
+uv run --project eval eval/gisd_eval.py fetch
+```
+
+Runs the [`utils/`](../utils/README.md) scripts into `gisd_data/`:
+
+- `gisd.xlsx` — latest GISD export (`--force` re-downloads)
+- `gisd_clean.csv` — rows with an EICAT category (DD included), mechanisms normalised
+- `references.xlsx` — the manifest: one row per reference, with a Scholar link and a `PDF Filename`
+
+`references.py` names files `first_author_year.pdf`, which collides for ~30% of references;
+`fetch` suffixes the collisions (`lever_2005_a.pdf`, `_b`, ...) so each name maps to exactly
+one reference. An existing manifest is never overwritten; delete it to regenerate.
+
+### 2. Add the PDFs
+
+Put PDFs **directly in `gisd_data/`** (flat, no subfolders), each named exactly as its
+`PDF Filename` in the manifest; the Scholar link there finds the paper. Rename a file in the
+manifest if you would rather call it something else. Only references with a PDF present are
+evaluated; PDFs missing from the manifest are skipped with a warning. `gisd_data/` is gitignored.
+
+### 3. Run
+
+```bash
+uv run --project eval eval/gisd_eval.py run
+```
+
+Pairs each PDF with its GISD rows (one **case** per PDF × species), starts an isolated stack
+(`docker compose -p eicat-gisd-eval` with [`compose.gisd-eval.yml`](compose.gisd-eval.yml):
+its own Mongo volume, API on **18000**, no UI, so it runs alongside the dev stack), uploads
+each paper, runs one analysis per species, then scores into `eval/runs/<timestamp>/`.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--data-dir` | `gisd_data` | Where the PDFs are. |
+| `--manifest` / `--gisd` | `<data-dir>/references.xlsx` / `gisd_clean.csv` | Manifest and gold rows. |
+| `--out` | `eval/runs/<timestamp>` | Run directory. Pass an existing one to **resume**: only unfinished cases are re-run. |
+| `--api-url` | `http://localhost:18000` | Eval stack API. |
+| `--concurrency` | `4` | PDFs processed in parallel. |
+| `--down` | off | Tear down the eval stack and its database afterwards. |
+
+The model is the API's default; set `EICAT_MODEL` in your shell to override it (it is passed
+into the container and recorded in each result). To re-score a run without calling the app again:
+
+```bash
+uv run --project eval eval/gisd_eval.py score eval/runs/<run>
+```
+
+### Scoring
+
+Mechanism names from both sides are mapped onto the canonical GISD names (`utils/gisd.py`,
+plus the app's `Bio-fouling`), then each side is collapsed to the most severe category per
+mechanism (MV > MR > MO > MN > MC > DD).
+
+- **Mechanism P/R/F1** — extracted vs GISD mechanism set per case, reported as micro (pooled
+  tp/fp/fn) and macro (mean over cases). A case with no extracted impacts scores precision 0.
+- **Category on matched mechanisms** — for mechanisms both sides found, exact accuracy and
+  mean absolute distance in category steps. Distance is undefined when either side is DD.
+- **Max category per case** — most severe GISD category vs most severe extracted one, with
+  the same two measures.
+
+Cases whose conversion or analysis failed are listed in the summary and excluded.
+
+### Outputs (in the run directory, gitignored)
+
+| File | Contents |
+|------|----------|
+| `metrics.json` | Headline metrics (as printed) plus failures. |
+| `cases.csv` | Per case: mechanism sets, tp/fp/fn, P/R/F1, max categories. |
+| `matches.csv` | Per matched mechanism: GISD vs extracted category and distance. |
+| `impacts.csv` | All extracted impacts, flattened. |
+| `extracted/<case>.json` | Raw app result per case: status, error, model, impacts. |
+| `gold.csv` | The GISD rows used as gold, with `case_id`. |
+
+### Caveats
+
+- GISD sometimes spells one reference several ways (`lever_2005_a`/`_b`/`_c`), each its own
+  manifest row, so save the PDF under every name you want evaluated.
+- GISD gives no vernacular names, so analyses use the scientific name only.
+- Matching is on mechanism only; whether the extracted *evidence* is the same impact GISD
+  recorded is not checked.
+- The eval stack runs `mongo:8.2` rather than the `mongo:8.0.21` in `docker-compose.yml`:
+  8.0.x refuses to start on Linux kernels >= 6.19
+  ([SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912)). Everything else is the
+  same images and builds as the app.

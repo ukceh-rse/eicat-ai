@@ -179,26 +179,6 @@ class Impact(BaseModel):
                     ", ".join(impact.impacted_species),
                 ])
 
-    @classmethod
-    def load_from_csv(cls, filepath: str) -> List[Impact]:
-        impacts = []
-        with open(filepath, "r", newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                impacted = [s.strip() for s in row["Impacted native species"].split(",") if s.strip()]
-                confidence_raw = row["Confidence rating"].strip()
-                reversibility_raw = row.get("reversibility", "").strip() or None
-                impacts.append(cls(
-                    alien_species=row["Species"],
-                    mechanism=Mechanism(row["Impact mechanism"]),
-                    category=Category(row["EICAT Category"]),
-                    reversibility=reversibility_raw,
-                    evidence=row["Evidence for EICAT impact category"],
-                    confidence=confidence_raw or None,
-                    justification=row["Justification for confidence rating"],
-                    impacted_species=impacted,
-                ))
-        return impacts
-
 
 # ---------------------------------------------------------------------------
 # MongoDB documents (Beanie)

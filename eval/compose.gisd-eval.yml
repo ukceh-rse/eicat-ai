@@ -1,0 +1,39 @@
+# Override for running the GISD evaluation against an isolated copy of the app stack.
+# Used by eval/gisd_eval.py as:
+#   docker compose -p eicat-gisd-eval -f docker-compose.yml -f eval/compose.gisd-eval.yml up ...
+# A separate project name plus a dedicated Mongo volume keeps eval papers/analyses out of
+# ./mongo-data, and dropping host ports lets it run alongside the normal dev stack.
+services:
+  mongodb:
+    # mongo 8.0.x refuses to start on Linux kernels >= 6.19 (SERVER-121912); the eval volume
+    # starts empty, so a newer server is safe here without touching ./mongo-data
+    image: mongo:8.2
+    ports: !reset []
+    volumes: !override
+      - gisd-eval-mongo:/data/db
+
+  tei-stylesheets-api:
+    ports: !reset []
+
+  grobid:
+    ports: !reset []
+
+  eicat-ai-api:
+    container_name: !reset null
+    ports: !override
+      - "18000:8000"
+    environment:
+      # passed through from the host when set, otherwise the API's default model is used
+      - EICAT_MODEL
+    healthcheck:
+      # ready only once GROBID and TEI can serve conversions and Mongo is initialised
+      test:
+        - CMD-SHELL
+        - curl -sf http://grobid:8070/api/isalive && curl -sf http://tei-stylesheets-api:8000/openapi.json && curl -sf http://localhost:8000/analyses/
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 60s
+
+volumes:
+  gisd-eval-mongo:

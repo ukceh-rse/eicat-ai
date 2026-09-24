@@ -42,25 +42,15 @@ docker compose up -d --build
 
 ## Evaluation
 
-Evaluation scripts benchmark the data extraction pipeline against gold standard GISD data. Docker services must be running.
-
-Install the CLI:
+`eval/gisd_eval.py` benchmarks the full application stack against the GISD EICAT assessments: it starts an isolated copy of the stack, uploads manually downloaded papers through the API, runs an analysis per species and scores the extracted impacts against GISD.
 
 ```bash
-uv pip install -e ./api
+uv run --project eval eval/gisd_eval.py fetch   # latest GISD data + references manifest into gisd_data/
+# download PDFs into gisd_data/, named as in the manifest's "PDF Filename" column
+uv run --project eval eval/gisd_eval.py run     # start stack, extract, score
 ```
 
-Run the three evaluation stages in order:
-
-```bash
-eicat-eval fetch    # download gold standard data from GISD
-eicat-eval prepare  # process PDFs with GROBID
-eicat-eval run      # compare LLM output against gold standard
-```
-
-After `fetch`, manually download the PDF files for each reference and place them in their respective directories before running `prepare`.
-
-Results report precision, recall, and F1 scores.
+Results report mechanism precision/recall/F1 and EICAT category agreement. See [`eval/README.md`](eval/README.md#gisd_evalpy--end-to-end-evaluation-against-gisd) for details.
 
 **Stack**: Python 3.13, FastAPI, Pydantic AI, React 19, TypeScript, AWS Bedrock (Claude 3.7 Sonnet / Nova Lite)
 
