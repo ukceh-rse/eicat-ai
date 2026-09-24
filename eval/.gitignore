@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+
+# Virtual environments
+.venv
+
+# Real annotator initials <-> anonymous id mapping; never commit this
+annotators.json
+
+# Figures labeled with real initials, for local debugging only; never commit these
+figures_named/
+
+# Derived metrics/figures from the IAA scripts; re-runnable, not source
+iaa_alignment.csv
+iaa_metrics.json
+iaa_report.md
+category_metrics.json
