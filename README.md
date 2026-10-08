@@ -45,8 +45,8 @@ docker compose up -d --build
 `eval/gisd_eval.py` benchmarks the full application stack against the GISD EICAT assessments: it starts an isolated copy of the stack, uploads manually downloaded papers through the API, runs an analysis per species and scores the extracted impacts against GISD.
 
 ```bash
-uv run --project eval eval/gisd_eval.py fetch   # latest GISD data + references manifest into gisd_data/
-# download PDFs into gisd_data/, named as in the manifest's "PDF Filename" column
+uv run --project eval eval/gisd_eval.py fetch   # latest GISD data + reference library page into gisd_data/
+uv run utils/library.py serve gisd_data/references.html  # find papers, download PDFs into gisd_data/
 uv run --project eval eval/gisd_eval.py run     # start stack, extract, score
 ```
 

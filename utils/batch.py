@@ -1,7 +1,7 @@
 """Create stratified batches from available papers.
 
-Reads the researcher-marked references spreadsheet (from references.py), joins with
-the cleaned GISD data, then samples and stratifies papers across N batches of M each.
+Reads the reference library page (from library.py) for the references whose PDF has been
+collected, joins with the cleaned GISD data, then samples and stratifies papers across N batches of M each.
 
 Stratification uses the joint (System × Category × Mechanism) percentages from the
 percentages.json produced by sankey.py.  Papers are allocated to strata proportionally
@@ -11,7 +11,7 @@ mirrors the overall distribution.
 Usage:
     uv run utils/batch.py --batches 5 --size 20
     uv run utils/batch.py --batches 10 --size 15 \\
-        --references data/references.xlsx \\
+        --references data/papers/references.html \\
         --gisd data/gisd_clean.csv \\
         --percentages data/percentages.json \\
         --output-dir data/batches
@@ -30,6 +30,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 sys.path.insert(0, str(Path(__file__).parent))
 from create_template import create_template
+from library import load_library
 
 app = typer.Typer(add_completion=False)
 
@@ -55,7 +56,7 @@ TEMPLATE_COLUMNS: list[dict] = [
 
 CAT_SEVERITY: dict[str, int] = {"MV": 5, "MR": 4, "MO": 3, "MN": 2, "MC": 1, "DD": 0}
 
-DEFAULT_REFERENCES = Path(__file__).parent.parent / "data" / "references.xlsx"
+DEFAULT_REFERENCES = Path(__file__).parent.parent / "data" / "papers" / "references.html"
 DEFAULT_GISD = Path(__file__).parent.parent / "data" / "gisd_clean.csv"
 DEFAULT_PERCENTAGES = Path(__file__).parent.parent / "data" / "percentages.json"
 DEFAULT_OUTPUT_DIR = Path(__file__).parent.parent / "data" / "batches"
@@ -84,22 +85,9 @@ def batch_label(i: int) -> str:
 
 # ── data loading ──────────────────────────────────────────────────────────────
 
-def load_available_references(xlsx_path: Path) -> set[str]:
-    """Return the set of reference strings marked available (Y) by the researcher."""
-    from openpyxl import load_workbook
-    wb = load_workbook(xlsx_path, read_only=True, data_only=True)
-    ws = wb.active
-    headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
-    ref_col = headers.index("Reference")
-    avail_col = headers.index("Available")
-
-    available = set()
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        ref = row[ref_col]
-        avail = str(row[avail_col] or "").strip().upper()
-        if ref and avail == "Y":
-            available.add(str(ref).strip())
-    return available
+def load_available_references(library_path: Path) -> set[str]:
+    """Return the set of reference strings whose PDF is in the library folder (library.py)."""
+    return {e["reference"] for e in load_library(library_path) if e["available"]}
 
 
 def make_papers(df: pd.DataFrame, available_refs: set[str]) -> pd.DataFrame:
@@ -292,14 +280,14 @@ def distribution_report(batches: list[pd.DataFrame], joint_pct: dict[str, float]
 def main(
     batches: Annotated[int, typer.Option("--batches", help="Number of batches to create")],
     size: Annotated[int, typer.Option("--size", help="Papers per batch")],
-    references: Annotated[Path, typer.Option(help="References xlsx (with Available column marked)")] = DEFAULT_REFERENCES,
+    references: Annotated[Path, typer.Option(help="Reference library page (PDFs present next to it count as available)")] = DEFAULT_REFERENCES,
     gisd: Annotated[Path, typer.Option(help="Cleaned GISD CSV")] = DEFAULT_GISD,
     percentages: Annotated[Path, typer.Option(help="Percentages JSON from sankey.py")] = DEFAULT_PERCENTAGES,
     output_dir: Annotated[Path, typer.Option(help="Directory for output batch xlsx files")] = DEFAULT_OUTPUT_DIR,
     papers_dir: Annotated[Path, typer.Option(help="Directory containing paper PDFs to copy")] = DEFAULT_PAPERS_DIR,
     seed: Annotated[Optional[int], typer.Option(help="Random seed for reproducibility")] = None,
 ) -> None:
-    """Create stratified batches from researcher-marked available papers."""
+    """Create stratified batches from papers collected in the reference library."""
     pct_data = json.loads(percentages.read_text())
     joint_pct: dict[str, float] = pct_data["joint"]
 

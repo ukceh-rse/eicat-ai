@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GISD Reference Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap">
+<style>
+  /* OneSTOP brand palette and type (Brand Guidelines: colour palette, typography) */
+  :root {
+    --green: #3CBB54;
+    --green-dark: #329B46;
+    --forest: #1E513D;
+    --mist: #E4EEE6;
+    --ink: #1c2622;
+    --muted: #5a6b63;
+    --line: #d3ded6;
+    --surface: #ffffff;
+    --warn: #b4591d;
+    --warn-bg: #fbeee4;
+    --auto-bg: #eef8f0;    /* PDF present, saved URL downloads it */
+    --manual-bg: #fdf7dc;  /* PDF present, no working URL */
+    --manual: #d4a72c;
+    --unavail-bg: #fdecea; /* marked unavailable by the researcher */
+    --unavail: #c0392b;
+    --radius: 8px;
+    --font-head: 'Gabarito', 'Work Sans', sans-serif;
+    --font-body: 'Satoshi', 'Work Sans', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f6f9f7; color: var(--ink); font: 15px/1.5 var(--font-body); }
+  h1, h2, h3 { font-family: var(--font-head); margin: 0; }
+  a { color: var(--forest); }
+  button, input, select { font: inherit; }
+
+  header { background: var(--forest); color: #fff; }
+  .bar { max-width: 1280px; margin: 0 auto; padding: 18px 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .logo { height: 34px; width: auto; }
+  header h1 { font-size: 22px; font-weight: 600; border-left: 1px solid rgba(255,255,255,.35); padding-left: 20px; }
+  .mode { margin-left: auto; font-size: 13px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.12); }
+  .mode.live::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .summary { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 16px; margin-bottom: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .stat .pct { font-family: var(--font-head); font-size: 52px; font-weight: 700; color: var(--forest); line-height: 1; }
+  .stat .label { color: var(--muted); margin-top: 6px; }
+  .meter { height: 10px; background: var(--mist); border-radius: 999px; overflow: hidden; margin: 14px 0 8px; }
+  .meter { display: flex; }
+  .meter > div { height: 100%; width: 0; transition: width .3s; }
+  #meter-auto { background: var(--green); }
+  #meter-manual { background: var(--manual); }
+  #meter-unavail { background: var(--unavail); }
+  .legend { list-style: none; margin: 0 0 6px; padding: 0; font-size: 13px; display: grid; gap: 3px; }
+  .legend li { display: flex; align-items: center; gap: 8px; }
+  .legend b { font-family: var(--font-head); font-size: 15px; color: var(--ink); min-width: 2.5em; text-align: right; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); border-left-width: 4px; flex: none; }
+  .swatch.auto { background: var(--auto-bg); border-left-color: var(--green); }
+  .swatch.manual { background: var(--manual-bg); border-left-color: var(--manual); }
+  .swatch.unavailable { background: var(--unavail-bg); border-left-color: var(--unavail); }
+  .swatch.missing { background: #fff; }
+  .stat small { color: var(--muted); display: block; }
+  .howto h2 { font-size: 17px; color: var(--forest); margin-bottom: 8px; }
+  .howto ol { margin: 0; padding-left: 20px; }
+  .howto li { margin: 4px 0; }
+  .howto code { background: var(--mist); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+  .notice { margin-top: 10px; padding: 10px 12px; border-radius: var(--radius); background: var(--warn-bg); color: var(--warn); font-size: 14px; }
+  .notice[hidden] { display: none; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 20px 0 12px; }
+  .toolbar input[type=search] { flex: 1 1 280px; }
+  input[type=search], input[type=url], select { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; background: #fff; min-width: 0; }
+  input:focus, select:focus, button:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+  .count { color: var(--muted); font-size: 14px; margin-left: auto; }
+
+  .refs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .ref { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; grid-template-columns: 1fr minmax(260px, 360px); gap: 8px 24px; }
+  .ref.unavailable { background: var(--unavail-bg); border-left-color: var(--unavail); }
+  .ref.auto { background: var(--auto-bg); border-left-color: var(--green); }
+  .ref.manual { background: var(--manual-bg); border-left-color: var(--manual); }
+  .ref:is(.auto, .manual, .unavailable) :is(.file code, .cat) { background: #fff; }
+  .ref.current { border-color: var(--forest); box-shadow: 0 0 0 2px var(--forest); }
+  .ref .text { font-size: 15px; overflow-wrap: anywhere; }
+  .meta { font-size: 13px; color: var(--muted); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .meta em { color: var(--ink); }
+  .cat { font-weight: 600; color: var(--forest); background: var(--mist); border-radius: 4px; padding: 0 5px; margin-right: 3px; }
+  .links { font-size: 13px; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .side { display: grid; gap: 8px; align-content: start; }
+  .file { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .file code { font-size: 13px; background: var(--mist); padding: 3px 8px; border-radius: 4px; overflow-wrap: anywhere; }
+  .pill { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .pill.yes { background: var(--green); color: #fff; }
+  .pill.no { background: #eef1ef; color: var(--muted); }
+  .pill.unavail { background: var(--unavail); color: #fff; }
+  .btn { border: 1px solid var(--green-dark); background: var(--green-dark); color: #fff; border-radius: var(--radius); padding: 6px 12px; cursor: pointer; font-weight: 500; text-decoration: none; font-size: 13px; white-space: nowrap; }
+  .btn:hover { background: var(--forest); border-color: var(--forest); }
+  .btn.ghost { background: transparent; color: var(--forest); border-color: var(--line); }
+  .btn.ghost:hover { background: var(--mist); }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  .source { display: flex; gap: 6px; }
+  .source input { flex: 1; font-size: 13px; padding: 6px 10px; }
+  .source-saved { font-size: 13px; overflow-wrap: anywhere; color: var(--muted); }
+  .note { font-size: 13px; color: #7a5c00; }
+  .msg { font-size: 13px; }
+  .msg.err { color: var(--warn); }
+  .empty { text-align: center; color: var(--muted); padding: 40px; }
+
+  @media (max-width: 860px) {
+    .summary, .ref { grid-template-columns: 1fr; }
+    header h1 { border: 0; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <svg class="logo" role="img" aria-label="OneSTOP" viewBox="0 0 1822.3 454.1"><path fill="#fff" d="M59.4,0S0,175.6,0,274.6s80.5,179.5,179.5,179.5,179.4-80.5,179.4-179.5C358.9,72.5,59.4,0,59.4,0h0ZM312.5,220.9c-4.2,1.8-7.4,3.7-7.7,9-.2,2.7-1.8,5.5-3.5,7.7-6.7,8.7-13.6,17.2-20.6,25.6-3.4,4.1-7.2,7.8-7.1,13.5.1,6-.1,12.1,1.1,17.9,4.4,20.6,5.2,41.1,1.5,61.8-.8,4.4-1,8.7-4.4,11.9-8.8,8.3-17.4,15.3-34.4,8.7-14.3-5.5-27.7-3-40.7,4.7-6.8,4-14.6,7.4-22.2,4.4-7.3-2.8-14.3-7.5-20-12.9-10.5-10-19.6-21.4-29.8-31.6-4.1-4-9.3-7.5-14.7-9.4-8.7-3.1-17.9-4.6-26.9-6.9-11.2-2.9-21.9-6.8-29.4-16.5-.7-.9-2.8-.7-4-1.3-4.2-2.2-8.5-4.4-12.3-7.1-.9-.7-1.1-3.6-.5-5,.5-1.1,2.8-2,4.2-1.8,3,.3,5.8,1.6,8.8,2,1.5.2,4.1,0,4.6-.9,5-8.8,12.6-8.9,20.7-6.3,11.3,3.7,22.5,7.9,33.7,12.1,4.7,1.7,6.9.5,6.7-4.5-.2-5.6-2.5-10.4-7-13.5-10.9-7.6-21.9-15.1-33.3-21.9-11.2-6.7-22.3-13.1-23.9-27.9,0-.9-1.5-2-2.6-2.3-6.2-2-9.4-7-11.9-12.4-2.1-4.4.9-8.2,5.6-6.9,3.9,1.1,7.3,3.9,11.1,5.6,2.2,1,4.9,2.1,7.2,1.8,8.2-1.1,16.3-1.3,23.7,2.9,11.8,6.7,21,16.3,30.7,26,17,17.2,23.7,6,4-20.6-4.3-3.6-57.5-49.2-31.7-71.6-3.7-5.9-7.6-11.2-10.6-17-1.1-2.2-.9-6.5.6-8.1,1.6-1.7,5.7-2.2,8.1-1.4,3.5,1.2,7.2,3.5,9.5,6.4,3.4,4.4,4.6,11,8.6,14.4,4.3,3.5,11.2,3.6,16.2,6.6,12.6,7.5,17.1,20.1,20.2,33.6,1.7,7.1,2.7,15.1,6.8,20.8,5,7.1,12.8,12.3,19.5,18.1,1.8,1.6,3.5,1.5,4.8-1.1,2.9-5.7,3.9-11.6.7-17.4-2.2-4-4.4-8-7.3-11.5-7.4-8.8-8.7-23.8-6.2-34.5,1.13-4.73.8-10.03-1-15.9-.4-1.5.6-4.9,2.1-6,1.4-1,5.1-1.1,6.3,0,3.9,3.5,4.4,7.2,7.8,11.3,1.2,1.4,12.2,6,16.7,8.4,8,4.4,13.7,15.8,15.4,24.3-.4,71.4,34.8,64.8,37.5,60.4,4.3-6.9,8.6-13.7,12.9-20.6,7.7-12.1,18.1-19.2,33.2-18.1,5.7.4,11.8.9,15.7-5,.7-1.1,2.5-1.7,4-2.1,4.7-1.3,8.8.2,11.7,4s1.1,7.5-1.7,10.5c-1.9,2-4.2,4-6.7,5.2l.2.4Z"/><path fill="#fff" d="M572.4,252.5c-3.9-8.2-10.1-14.8-18.4-19.7-8.4-4.9-19.8-7.3-34.4-7.3s-21.5,1.6-31.8,4.8c-10.3,3.2-20.1,7.9-29.3,14-5.9,4-11.6,8.5-17,13.7l-3.6-14.7c-2-8-9.1-13.6-17.3-13.6h0c-9.9,0-17.8,8-17.8,17.8v165.7c0,11.6,9.4,21,21,21h0c11.6,0,21-9.4,21-21v-116.3c2.9-3.6,6.2-7,10.1-10.3,7.3-6.1,15.5-11,24.7-14.7,9.2-3.6,18.3-5.4,27.2-5.4s16.7,2.5,23.3,7.5,9.8,14.8,9.8,29.3v109.8c0,11.6,9.4,21,21,21h0c11.6,0,21-9.4,21-21v-101c0-10.9-.6-21.5-1.7-31.8-1.1-10.3-3.6-19.6-7.5-27.9l-.3.1Z"/><path fill="#fff" d="M773.9,238.9c-15.1-8.9-32.7-13.4-52.8-13.4s-37.3,4.5-52.4,13.4c-15.1,8.9-26.8,21.4-35.2,37.3s-12.6,34.6-12.6,56.1,4.2,39.8,12.6,55.7c8.4,15.9,20.1,28.3,35.2,37.1,15.1,8.8,32.5,13.2,52.4,13.2s41.4-4.4,56.4-13.2c9.4-5.5,17.7-12.8,25-21.8,7.1-8.9,4.8-22.1-4.9-28.1h0c-8-5-18.4-3.5-24.6,3.6-4.3,4.9-8.8,9.2-13.8,13.1-8.9,7-21.7,10.5-38.1,10.5s-31.8-5.5-41.9-16.6c-9.5-10.4-14.5-24.3-15-41.7h156.7c.3-1.7.5-3.6.6-5.7s.2-4.1.2-6.1c0-21.5-4.2-40.2-12.6-56.1s-20.1-28.3-35.2-37.3h0ZM679.6,276c10.3-11,24.2-16.6,41.5-16.6s34.1,6.8,43.6,20.5c5.6,8.1,9.5,17.4,11.8,28.1h-111.6c1.8-12.8,6.7-23.4,14.7-32.1v.1Z"/><path fill="#fff" d="M1016.7,290.2c-13.3-8-31.6-14.9-55.1-20.7-23.2-5.6-38.8-12.1-46.7-19.7-8-7.5-11.9-16.5-11.9-26.8s4.3-21.2,12.8-27.7c8.5-6.4,20.9-9.6,37.1-9.6s20.6,2.3,30,6.9c5.4,2.7,10.8,6.4,16,11.1,7.2,6.5,17.8,7.4,25.9,2.2h0c11.7-7.5,13.1-24,2.9-33.6-6-5.6-12.5-10.4-19.5-14.5-14.5-8.5-33-12.8-55.3-12.8s-34.9,3.3-48.6,9.8c-13.7,6.6-24.2,15.6-31.4,27.2-7.3,11.6-10.9,25.2-10.9,40.9s2.4,24.2,7.1,35,13.2,20.3,25.3,28.5c12.2,8.2,29.1,15.2,50.9,20.7,17.3,4.2,30.7,8.8,40.2,13.8s16.1,10.5,19.9,16.3c3.8,5.9,5.7,12.7,5.7,20.5,0,13.1-4.4,23.5-13.2,31-8.8,7.5-21.7,11.3-38.8,11.3s-32.3-3.9-44-11.7c-7.9-5.2-15.3-12.7-22.3-22.4-6.2-8.6-17.9-11.3-27.2-6h0c-10.3,5.8-13.7,19.1-7.4,29.1,5.6,8.9,11.9,16.4,18.8,22.6,11.5,10.2,24.1,17.5,37.9,22s28.1,6.7,43,6.7,36-3.7,50.3-11.1c14.2-7.4,25.3-17.2,33.1-29.5,7.8-12.3,11.7-26.1,11.7-41.5s-2.7-28.6-8.2-39.6c-5.4-11-14.8-20.5-28.1-28.5v.1Z"/><path fill="#fff" d="M1275.9,188.2c10.9,0,19.7-8.8,19.7-19.7h0c0-10.9-8.8-19.7-19.7-19.7h-185.2c-10.9,0-19.7,8.8-19.7,19.7h0c0,10.9,8.8,19.7,19.7,19.7h69.6v225c0,11.6,9.4,21,21,21h0c11.6,0,21-9.4,21-21v-225h73.7-.1Z"/><path fill="#fff" d="M1544.7,186.5c-13.3-13.1-28.8-23.3-46.7-30.6-17.9-7.3-37.3-10.9-58.2-10.9s-40.9,3.6-58.9,10.9-33.7,17.5-47.1,30.6-23.8,28.6-31.2,46.5c-7.4,17.9-11.1,37.4-11.1,58.7s3.7,40.4,11.1,58.2c2.2,5.4,4.7,10.5,7.5,15.5l-37.2,32.9c-8.1,7.2-8.9,19.6-1.7,27.8,7.2,8.1,19.6,8.9,27.8,1.7l35-31c13.4,13.2,29,23.4,46.9,30.6,11.1,4.5,22.8,7.6,35.1,9.3,7.7,1.1,15.6,1.6,23.7,1.6s15.2-.5,22.5-1.5c12.5-1.7,24.4-4.8,35.8-9.4,17.9-7.3,33.5-17.5,46.7-30.8,13.3-13.3,23.6-28.8,31-46.7,7.4-17.9,11.1-37.3,11.1-58.2s-3.7-40.8-11.1-58.7c-7.4-17.9-17.7-33.4-31-46.5h0ZM1530.5,346.4c-9.1,16.1-21.4,28.7-37.1,37.9-15.6,9.2-33.5,13.8-53.6,13.8s-38.1-4.6-54.1-13.8c-7.5-4.3-14.3-9.4-20.3-15.3-6.8-6.6-12.6-14.1-17.5-22.6-1.9-3.3-3.6-6.6-5-10-5.9-13.5-8.8-28.4-8.8-44.6s4.6-39,13.8-54.9c9.2-15.9,21.8-28.5,37.7-37.7,15.9-9.2,33.9-13.8,54.1-13.8s38,4.6,53.6,13.8c15.6,9.2,28,21.8,37.1,37.7,9.1,15.9,13.6,34.2,13.6,54.9s-4.5,38.6-13.6,54.7l.1-.1Z"/><path fill="#fff" d="M1810,196.6c-8.1-14.5-19.4-26.1-33.9-34.8-14.5-8.7-31.6-13-51.1-13h-101v264.4c0,11.6,9.4,21,21,21h0c11.6,0,21-9.4,21-21v-71.2h58.7c19.6,0,36.7-4.3,51.3-12.8,14.7-8.5,26-20.1,34.1-34.8,8.1-14.7,12.2-30.9,12.2-48.8s-4.1-34.5-12.2-49h-.1ZM1761.8,287.5c-11.2,10.1-26,15.1-44.4,15.1h-51.5v-114.4h52c18.4,0,33.2,4.8,44.2,14.5,11,9.6,16.6,24,16.6,42.9s-5.6,31.8-16.8,41.9h-.1Z"/></svg>
+    <h1>GISD reference library</h1>
+    <span class="mode" id="mode">Snapshot</span>
+  </div>
+</header>
+
+<main>
+  <section class="summary">
+    <div class="card stat">
+      <div class="pct" id="pct">0%</div>
+      <div class="label">of reference PDFs in the library</div>
+      <div class="meter"><div id="meter-auto"></div><div id="meter-manual"></div><div id="meter-unavail"></div></div>
+      <ul class="legend">
+        <li><span class="swatch auto"></span><b id="n-auto">0</b> downloadable from saved URLs</li>
+        <li><span class="swatch manual"></span><b id="n-manual">0</b> added by hand, no working URL</li>
+        <li><span class="swatch unavailable"></span><b id="n-unavail">0</b> marked unavailable</li>
+        <li><span class="swatch missing"></span><b id="n-missing">0</b> still to find</li>
+      </ul>
+      <small id="counts"></small>
+      <small id="updated"></small>
+    </div>
+    <div class="card howto">
+      <h2>Building the library</h2>
+      <ol>
+        <li>Find the paper with the search links on each reference.</li>
+        <li>Save the PDF into the same folder as this page under the suggested filename, or paste the URL of the PDF into <em>Source URL</em> and it is downloaded for you.</li>
+        <li>If a paper can't be found, use <em>Mark unavailable</em>. Availability updates when you come back to this tab; filter to <em>Still to find</em> to see what is left.</li>
+      </ol>
+      <p class="notice" id="static-notice">This page is opened from disk, so availability is as of the last build and URLs can't be saved. Run <code>uv run utils/library.py serve <span id="page-path"></span></code> and open the link it prints to check the folder live and download from URLs.</p>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Search references, species or filenames" aria-label="Search">
+    <select id="status" aria-label="Availability">
+      <option value="all">All references</option>
+      <option value="missing">Still to find</option>
+      <option value="unavailable">Marked unavailable</option>
+      <option value="available">PDF available</option>
+      <option value="auto">Available, downloadable from URL</option>
+      <option value="manual">Available, no working URL</option>
+      <option value="failed">Source URL saved, PDF missing</option>
+    </select>
+    <select id="category" aria-label="EICAT category">
+      <option value="">Any category</option>
+      <option>MV</option><option>MR</option><option>MO</option><option>MN</option><option>MC</option><option>DD</option>
+    </select>
+    <span class="count" id="shown"></span>
+  </div>
+
+  <ul class="refs" id="refs"></ul>
+</main>
+
+<script id="library-data" type="application/json">{"references": []}</script>
+<script>
+const data = JSON.parse(document.getElementById('library-data').textContent);
+const refs = data.references;
+const byFile = new Map(refs.map(r => [r.file, r]));
+let live = false;
+// auto: PDF present and its saved URL downloads it; manual: PDF present without a working URL
+// unavailable: researcher marked it as not obtainable (a PDF in the folder takes precedence)
+const state = r => r.available ? (r.source && r.source_ok ? 'auto' : 'manual') : r.unavailable ? 'unavailable' : 'missing';
+let current = null;  // file of the reference last interacted with, kept highlighted
+
+const $ = id => document.getElementById(id);
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v; else el.setAttribute(k, v);
+  }
+  el.append(...children.flat().filter(c => c != null && c !== false));
+  return el;
+}
+
+function searchLinks(r) {
+  const q = encodeURIComponent(r.reference.slice(0, 200));
+  const links = [
+    ['Google Scholar', `https://scholar.google.com/scholar?q=${q}`],
+    ['Google (PDF)', `https://www.google.com/search?q=${q}+filetype%3Apdf`],
+    ['Semantic Scholar', `https://www.semanticscholar.org/search?q=${q}`],
+  ];
+  if (r.doi) links.push(['DOI', `https://doi.org/${r.doi}`], ['Unpaywall', `https://unpaywall.org/${r.doi}`]);
+  if (r.url && !(r.doi && r.url.includes(r.doi))) links.push(['Link in reference', r.url]);
+  return links.map(([label, href]) => h('a', { href, target: '_blank', rel: 'noopener' }, label));
+}
+
+function note(r) {
+  if (state(r) !== 'manual' || r.error) return null;
+  return h('div', { class: 'note' }, r.source && r.source_ok === false
+    ? "The saved URL didn't download a PDF; a direct PDF link would make this re-downloadable."
+    : 'No source URL recorded, so this PDF can only be re-collected by hand.');
+}
+
+function sourceBlock(r) {
+  const saved = r.source ? h('div', { class: 'source-saved' }, 'Source: ', h('a', { href: r.source, target: '_blank', rel: 'noopener' }, r.source)) : null;
+  if (!live) return [saved, note(r)];
+  const input = h('input', { type: 'url', placeholder: 'Source URL of the PDF', value: r.source || '', 'aria-label': `Source URL for ${r.file}` });
+  const form = h('form', { class: 'source', 'data-file': r.file }, input, h('button', { class: 'btn', type: 'submit' }, r.available ? 'Save' : 'Fetch'));
+  return [form, r.error ? h('div', { class: 'msg err' }, r.error) : saved, note(r)];
+}
+
+function pill(r) {
+  const [cls, label] = { auto: ['yes', 'Available'], manual: ['yes', 'Available'], unavailable: ['unavail', 'Unavailable'], missing: ['no', 'Not yet found'] }[state(r)];
+  return h('span', { class: `pill ${cls}` }, label);
+}
+
+function row(r) {
+  const meta = h('div', { class: 'meta' },
+    h('span', {}, ...r.categories.map(c => h('span', { class: 'cat' }, c))),
+    h('span', {}, h('em', {}, r.species.join(', '))),
+    h('span', {}, r.mechanisms.join(' · ')));
+  const file = h('div', { class: 'file' },
+    pill(r),
+    h('code', {}, r.file),
+    h('button', { class: 'btn ghost', type: 'button', 'data-copy': r.file, title: 'Copy filename' }, 'Copy'),
+    r.available ? h('a', { class: 'btn', href: encodeURIComponent(r.file), target: '_blank', rel: 'noopener' }, 'Open') : null,
+    live && !r.available ? h('button', { class: 'btn ghost', type: 'button', 'data-unavailable': r.file },
+      r.unavailable ? 'Undo unavailable' : 'Mark unavailable') : null);
+  return h('li', { class: `ref ${state(r)}${r.file === current ? ' current' : ''}`, id: `ref-${r.file}`, 'data-file': r.file },
+    h('div', {}, h('div', { class: 'text' }, r.reference), meta, h('div', { class: 'links' }, searchLinks(r))),
+    h('div', { class: 'side' }, file, sourceBlock(r)));
+}
+
+function matches(r, q, status, cat) {
+  if ((status === 'missing' || status === 'unavailable') && state(r) !== status) return false;
+  if (status === 'available' && !r.available) return false;
+  if (status === 'failed' && (r.available || !r.source)) return false;
+  if ((status === 'auto' || status === 'manual') && state(r) !== status) return false;
+  if (cat && !r.categories.includes(cat)) return false;
+  if (!q) return true;
+  return [r.reference, r.file, r.species.join(' '), r.mechanisms.join(' ')].join(' ').toLowerCase().includes(q);
+}
+
+function summarise() {
+  const n = refs.length, have = refs.filter(r => r.available).length;
+  const auto = refs.filter(r => state(r) === 'auto').length;
+  const unavail = refs.filter(r => state(r) === 'unavailable').length;
+  const pct = n ? (100 * have / n) : 0;
+  $('pct').textContent = `${pct < 10 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%`;
+  $('meter-auto').style.width = `${n ? 100 * auto / n : 0}%`;
+  $('meter-manual').style.width = `${n ? 100 * (have - auto) / n : 0}%`;
+  $('n-auto').textContent = auto.toLocaleString();
+  $('n-manual').textContent = (have - auto).toLocaleString();
+  $('meter-unavail').style.width = `${n ? 100 * unavail / n : 0}%`;
+  $('n-unavail').textContent = unavail.toLocaleString();
+  $('n-missing').textContent = (n - have - unavail).toLocaleString();
+  $('counts').textContent = `${have.toLocaleString()} of ${n.toLocaleString()} PDFs available`;
+  $('updated').textContent = live ? 'Checked live against the folder' : `Snapshot from ${data.updated ? new Date(data.updated).toLocaleString() : 'the last build'}`;
+}
+
+function render() {
+  const q = $('q').value.trim().toLowerCase(), status = $('status').value, cat = $('category').value;
+  const shown = refs.filter(r => matches(r, q, status, cat));
+  $('refs').replaceChildren(...(shown.length ? shown.map(row) : [h('li', { class: 'empty' }, 'No references match.')]));
+  $('shown').textContent = `${shown.length.toLocaleString()} shown`;
+  summarise();
+}
+
+async function refresh() {
+  try {
+    const res = await fetch('api/files', { cache: 'no-store' });
+    if (!res.ok) throw new Error();
+    const files = new Set((await res.json()).files);
+    const changed = !live || refs.some(r => r.available !== files.has(r.file));
+    refs.forEach(r => { r.available = files.has(r.file); });
+    live = true;
+    $('mode').textContent = 'Live'; $('mode').classList.add('live');
+    $('static-notice').hidden = true;
+    if (changed && !document.activeElement?.closest('.source')) render();
+  } catch { /* opened from disk or server stopped: keep the embedded snapshot */ }
+}
+
+function select(e) {
+  const li = e.target.closest('.ref');
+  if (!li || li.dataset.file === current) return;
+  document.querySelector('.ref.current')?.classList.remove('current');
+  li.classList.add('current');
+  current = li.dataset.file;
+}
+$('refs').addEventListener('pointerdown', select);  // any button, so middle-clicked links count too
+$('refs').addEventListener('focusin', select);      // keyboard navigation
+
+$('refs').addEventListener('click', async e => {
+  const toggle = e.target.closest('[data-unavailable]');
+  if (toggle) {
+    const r = byFile.get(toggle.dataset.unavailable);
+    toggle.disabled = true;
+    try {
+      const res = await fetch('api/unavailable', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: r.file, unavailable: !r.unavailable }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || res.statusText);
+      Object.assign(r, { unavailable: body.unavailable, error: null });
+    } catch (err) {
+      r.error = `Could not reach the library server: ${err.message}`;
+    }
+    toggle.closest('li').replaceWith(row(r));
+    summarise();
+    return;
+  }
+  const btn = e.target.closest('[data-copy]');
+  if (!btn) return;
+  try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = 'Copied'; }
+  catch { window.prompt('Copy the filename:', btn.dataset.copy); }
+  setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+});
+
+$('refs').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target, r = byFile.get(form.dataset.file), btn = form.querySelector('button');
+  btn.disabled = true; btn.textContent = 'Fetching…';
+  try {
+    const res = await fetch('api/source', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: r.file, url: form.querySelector('input').value }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || res.statusText);
+    Object.assign(r, { available: body.available, source: body.source, source_ok: body.source_ok, error: body.error });
+  } catch (err) {
+    r.error = `Could not reach the library server: ${err.message}`;
+  }
+  const li = form.closest('li');
+  li.replaceWith(row(r));
+  summarise();
+});
+
+for (const id of ['q', 'status', 'category']) $(id).addEventListener('input', render);
+window.addEventListener('focus', refresh);
+setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 15000);
+$('page-path').textContent = decodeURIComponent(location.pathname.split('/').slice(-2).join('/'));
+render();
+refresh();
+</script>
+</body>
+</html>

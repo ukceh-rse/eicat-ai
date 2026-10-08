@@ -1,12 +1,12 @@
 """Evaluate the EICAT AI application end-to-end against GISD impact assessments.
 
 Papers are PDFs downloaded by hand into a flat directory (`gisd_data/` by default), each named
-as in the `PDF Filename` column of the references manifest built by `utils/references.py`.
+as in the reference library page (`references.html`) built by `utils/library.py`.
 Every paper is pushed through the real application stack (upload -> GROBID/TEI conversion ->
 one analysis per GISD species for that reference) and the extracted impacts are scored
 against the GISD rows for the same reference and species.
 
-    uv run --project eval eval/gisd_eval.py fetch                  # latest GISD + manifest
+    uv run --project eval eval/gisd_eval.py fetch                  # latest GISD + reference library
     uv run --project eval eval/gisd_eval.py run                    # start stack, extract, score
     uv run --project eval eval/gisd_eval.py score eval/runs/<run>  # re-score a finished run
 """
@@ -20,18 +20,17 @@ import os
 import re
 import subprocess
 import sys
-from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from statistics import fmean
 
 import httpx
 import pandas as pd
-from openpyxl import load_workbook
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "utils"))
 from gisd import normalise_mechanism  # noqa: E402
+from library import load_library  # noqa: E402
 
 DEFAULT_DATA_DIR = REPO / "gisd_data"
 DEFAULT_RUNS_DIR = REPO / "eval" / "runs"
@@ -59,44 +58,13 @@ def utils_script(name: str, *args: str) -> None:
     subprocess.run(["uv", "run", "--project", str(REPO / "utils"), str(REPO / "utils" / name), *args], check=True, env=env)
 
 
-def disambiguate_filenames(manifest: Path) -> None:
-    """Suffix suggested PDF names shared by several references (lever_2005.pdf -> lever_2005_a.pdf, ...)
-    so each downloaded PDF maps to exactly one reference."""
-    wb = load_workbook(manifest)
-    ws = wb.active
-    col = [c.value for c in ws[1]].index("PDF Filename") + 1
-    cells = [ws.cell(r, col) for r in range(2, ws.max_row + 1)]
-    counts = Counter(c.value for c in cells)
-    seen: Counter[str] = Counter()
-    for cell in cells:
-        name = cell.value
-        if counts[name] > 1:
-            cell.value = f"{Path(name).stem}_{batch_label(seen[name])}.pdf"
-            seen[name] += 1
-    wb.save(manifest)
-    print(f"Disambiguated {sum(n for n in counts.values() if n > 1)} references sharing a PDF filename")
-
-
-def batch_label(i: int) -> str:
-    """0 -> 'a', 25 -> 'z', 26 -> 'aa', ..."""
-    label, n = "", i + 1
-    while n > 0:
-        n, r = divmod(n - 1, 26)
-        label = chr(ord("a") + r) + label
-    return label
-
-
 def fetch(data_dir: Path, force: bool) -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
-    raw, clean, manifest = data_dir / "gisd.xlsx", data_dir / "gisd_clean.csv", data_dir / "references.xlsx"
+    raw, clean, library = data_dir / "gisd.xlsx", data_dir / "gisd_clean.csv", data_dir / "references.html"
     utils_script("download.py", "--output", str(raw), *(["--force"] if force else []))
     utils_script("filter_clean.py", "--input", str(raw), "--output", str(clean), "--include-dd")
-    if manifest.exists():
-        print(f"Keeping existing manifest {manifest} (delete it to regenerate)")
-    else:
-        utils_script("references.py", "--input", str(clean), "--output", str(manifest))
-        disambiguate_filenames(manifest)
-    print(f"\nDownload papers into {data_dir}/, named as in the manifest's 'PDF Filename' column.")
+    utils_script("library.py", "build", "--gisd", str(clean), "--output", str(library))
+    print(f"\nOpen {library} (or `uv run utils/library.py serve {library}`) to find and download the papers.")
 
 
 # ── cases ─────────────────────────────────────────────────────────────────────
@@ -104,9 +72,9 @@ def fetch(data_dir: Path, force: bool) -> None:
 
 def load_cases(data_dir: Path, manifest_path: Path, gisd_path: Path) -> tuple[list[dict], pd.DataFrame]:
     """Pair each PDF with its GISD reference, giving one case per (PDF, species)."""
-    read = pd.read_csv if manifest_path.suffix == ".csv" else pd.read_excel
-    manifest = read(manifest_path).dropna(subset=["Reference", "PDF Filename"])
-    refs_by_file = manifest.groupby("PDF Filename")["Reference"].agg(lambda s: sorted({r.strip() for r in s}))
+    refs_by_file: dict[str, list[str]] = {}
+    for entry in load_library(manifest_path):
+        refs_by_file.setdefault(entry["file"], []).append(entry["reference"])
     gisd = pd.read_csv(gisd_path)
     gisd["Reference"] = gisd["Reference"].str.strip()
 
@@ -114,7 +82,7 @@ def load_cases(data_dir: Path, manifest_path: Path, gisd_path: Path) -> tuple[li
     for pdf in sorted(p for p in data_dir.iterdir() if p.suffix.lower() == ".pdf"):
         refs = refs_by_file.get(pdf.name, [])
         if len(refs) != 1:
-            reason = "not in manifest" if not refs else f"matches {len(refs)} references; rename it in the manifest"
+            reason = "not in the library" if not refs else f"matches {len(refs)} references in the library"
             print(f"  ! skipping {pdf.name}: {reason}")
             continue
         rows = gisd[gisd["Reference"] == refs[0]]
@@ -194,7 +162,7 @@ def run(args: argparse.Namespace) -> None:
     extracted_dir = out / "extracted"
     extracted_dir.mkdir(parents=True, exist_ok=True)
 
-    cases, gold = load_cases(args.data_dir, args.manifest or args.data_dir / "references.xlsx", args.gisd or args.data_dir / "gisd_clean.csv")
+    cases, gold = load_cases(args.data_dir, args.manifest or args.data_dir / "references.html", args.gisd or args.data_dir / "gisd_clean.csv")
     if not cases:
         sys.exit(f"No evaluable PDFs found in {args.data_dir}")
     gold.to_csv(out / "gold.csv", index=False)
@@ -334,13 +302,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("fetch", help="Download the latest GISD data and build the references manifest.")
+    p = sub.add_parser("fetch", help="Download the latest GISD data and build or refresh the reference library page.")
     p.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     p.add_argument("--force", action="store_true", help="Re-download GISD even if gisd.xlsx exists.")
 
     p = sub.add_parser("run", help="Start the app stack, extract impacts from every PDF, then score.")
     p.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR, help="Directory of manually downloaded PDFs.")
-    p.add_argument("--manifest", type=Path, help="References manifest (xlsx/csv). Default: <data-dir>/references.xlsx")
+    p.add_argument("--manifest", type=Path, help="Reference library page from utils/library.py. Default: <data-dir>/references.html")
     p.add_argument("--gisd", type=Path, help="Cleaned GISD CSV. Default: <data-dir>/gisd_clean.csv")
     p.add_argument("--out", type=Path, help="Run directory; pass an existing one to resume. Default: eval/runs/<timestamp>")
     p.add_argument("--api-url", default=DEFAULT_API_URL)

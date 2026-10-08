@@ -164,18 +164,27 @@ Runs the [`utils/`](../utils/README.md) scripts into `gisd_data/`:
 
 - `gisd.xlsx` — latest GISD export (`--force` re-downloads)
 - `gisd_clean.csv` — rows with an EICAT category (DD included), mechanisms normalised
-- `references.xlsx` — the manifest: one row per reference, with a Scholar link and a `PDF Filename`
+- `references.html` — the reference library: one entry per reference with search links, the
+  `PDF Filename` to save it as, whether that PDF is present, and its source URL
 
-`references.py` names files `first_author_year.pdf`, which collides for ~30% of references;
-`fetch` suffixes the collisions (`lever_2005_a.pdf`, `_b`, ...) so each name maps to exactly
-one reference. An existing manifest is never overwritten; delete it to regenerate.
+`references.html` is a single page built by [`utils/library.py`](../utils/README.md#4-reference-library);
+its reference data is embedded in it, so it is also the manifest `run` reads. Files are named
+`first_author_year.pdf`, suffixed where references collide (`lever_2005_a.pdf`, `_b`, ...) so each
+name maps to exactly one reference. Re-running `fetch` refreshes the page and keeps every
+filename and source URL already in it.
 
 ### 2. Add the PDFs
 
-Put PDFs **directly in `gisd_data/`** (flat, no subfolders), each named exactly as its
-`PDF Filename` in the manifest; the Scholar link there finds the paper. Rename a file in the
-manifest if you would rather call it something else. Only references with a PDF present are
-evaluated; PDFs missing from the manifest are skipped with a warning. `gisd_data/` is gitignored.
+PDFs go **directly in `gisd_data/`** (flat, no subfolders), each named exactly as its filename in
+the library. Open `gisd_data/references.html` to work through the list, or serve it to get live
+availability and download-from-URL:
+
+```bash
+uv run utils/library.py serve gisd_data/references.html   # then open http://127.0.0.1:8765/
+```
+
+Only references with a PDF present are evaluated; PDFs not in the library are skipped with a
+warning. `gisd_data/` is gitignored.
 
 ### 3. Run
 
@@ -191,7 +200,7 @@ each paper, runs one analysis per species, then scores into `eval/runs/<timestam
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--data-dir` | `gisd_data` | Where the PDFs are. |
-| `--manifest` / `--gisd` | `<data-dir>/references.xlsx` / `gisd_clean.csv` | Manifest and gold rows. |
+| `--manifest` / `--gisd` | `<data-dir>/references.html` / `gisd_clean.csv` | Reference library page and gold rows. |
 | `--out` | `eval/runs/<timestamp>` | Run directory. Pass an existing one to **resume**: only unfinished cases are re-run. |
 | `--api-url` | `http://localhost:18000` | Eval stack API. |
 | `--concurrency` | `4` | PDFs processed in parallel. |
@@ -233,7 +242,7 @@ Cases whose conversion or analysis failed are listed in the summary and excluded
 ### Caveats
 
 - GISD sometimes spells one reference several ways (`lever_2005_a`/`_b`/`_c`), each its own
-  manifest row, so save the PDF under every name you want evaluated.
+  library entry, so save the PDF under every name you want evaluated.
 - GISD gives no vernacular names, so analyses use the scientific name only.
 - Matching is on mechanism only; whether the extracted *evidence* is the same impact GISD
   recorded is not checked.
