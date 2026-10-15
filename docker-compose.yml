@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:8.0.21
+    image: mongo:8.2
     ports:
       - "27017:27017"
     volumes:
@@ -67,4 +67,3 @@ services:
 networks:
   eicat-network:
     driver: bridge
-
