@@ -42,15 +42,15 @@ docker compose up -d --build
 
 ## Evaluation
 
-`eval/gisd_eval.py` benchmarks the full application stack against the GISD EICAT assessments: it starts an isolated copy of the stack, uploads manually downloaded papers through the API, runs an analysis per species and scores the extracted impacts against GISD.
+`eval/gisd_eval.py` benchmarks the full application stack against the GISD EICAT assessments: it starts an isolated copy of the stack, uploads manually downloaded papers through the API, runs an analysis per species, has an LLM judge pair the extracted impacts with GISD's, and writes a scored report.
 
 ```bash
 uv run --project eval eval/gisd_eval.py fetch   # latest GISD data + reference library page into gisd_data/
 uv run utils/library.py serve gisd_data/references.html  # find papers, download PDFs into gisd_data/
-uv run --project eval eval/gisd_eval.py run     # start stack, extract, score
+uv run --project eval eval/gisd_eval.py run     # start stack, extract, judge, score, report
 ```
 
-Results report mechanism precision/recall/F1 and EICAT category agreement. See [`eval/README.md`](eval/README.md#gisd_evalpy--end-to-end-evaluation-against-gisd) for details.
+The report (`eval/runs/<run>/report.md`) covers impact detection P/R/F1/F2, per-class metrics for EICAT category and mechanism, and maximum-category accuracy; each stage can also be run on its own. See [`eval/README.md`](eval/README.md#gisd_evalpy--end-to-end-evaluation-against-gisd) for details.
 
 **Stack**: Python 3.13, FastAPI, Pydantic AI, React 19, TypeScript, AWS Bedrock (Claude 3.7 Sonnet / Nova Lite)
 

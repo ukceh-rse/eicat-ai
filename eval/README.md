@@ -186,18 +186,32 @@ uv run utils/library.py serve gisd_data/references.html   # then open http://127
 Only references with a PDF present are evaluated; PDFs not in the library are skipped with a
 warning. `gisd_data/` is gitignored.
 
-### 3. Run
+### 3. Run the pipeline
 
 ```bash
 uv run --project eval eval/gisd_eval.py run
 ```
 
-Pairs each PDF with its GISD rows (one **case** per PDF × species), starts an isolated stack
+`run` chains four stages. Each stage reads the previous one's files from the run directory, so any
+of them can be re-run on its own, e.g. to re-judge with another model or to tweak the report without
+touching the app:
+
+| Stage | Command | Reads | Writes | Needs |
+|-------|---------|-------|--------|-------|
+| 1. extract | `gisd_eval.py extract [--out DIR]` | PDFs, library, GISD CSV | `gold.csv`, `extracted/` | Docker, Bedrock |
+| 2. judge | `gisd_eval.py judge DIR` | `gold.csv`, `extracted/` | `judged/` | Bedrock |
+| 3. score | `gisd_eval.py score DIR` | `gold.csv`, `extracted/`, `judged/` | `metrics.json`, `cases.csv`, `pairs.csv`, `impacts.csv` | - |
+| 4. report | `gisd_eval.py report DIR` | `metrics.json` | `report.md`, `figures/` | - |
+
+The code follows the same split: [`gisd_eval.py`](gisd_eval.py) (CLI, fetch, extract),
+[`gisd_judge.py`](gisd_judge.py), [`gisd_score.py`](gisd_score.py) and [`gisd_report.py`](gisd_report.py).
+
+**extract** pairs each PDF with its GISD rows (one **case** per PDF × species), starts an isolated stack
 (`docker compose -p eicat-gisd-eval` with [`compose.gisd-eval.yml`](compose.gisd-eval.yml):
 its own Mongo volume, API on **18000**, no UI, so it runs alongside the dev stack), uploads
-each paper, runs one analysis per species, then scores into `eval/runs/<timestamp>/`.
+each paper and runs one analysis per species into `eval/runs/<timestamp>/`.
 
-| Option | Default | Description |
+| Option (`extract`, `run`) | Default | Description |
 |--------|---------|-------------|
 | `--data-dir` | `gisd_data` | Where the PDFs are. |
 | `--manifest` / `--gisd` | `<data-dir>/references.html` / `gisd_clean.csv` | Reference library page and gold rows. |
@@ -206,36 +220,56 @@ each paper, runs one analysis per species, then scores into `eval/runs/<timestam
 | `--concurrency` | `4` | PDFs processed in parallel. |
 | `--down` | off | Tear down the eval stack and its database afterwards. |
 
-The model is the API's default; set `EICAT_MODEL` in your shell to override it (it is passed
-into the container and recorded in each result). To re-score a run without calling the app again:
+The extraction model is the API's default; set `EICAT_MODEL` in your shell to override it (it is passed
+into the container and recorded in each result).
 
-```bash
-uv run --project eval eval/gisd_eval.py score eval/runs/<run>
-```
+**judge** asks an LLM (Pydantic AI, temperature 0) to pair each case's extracted impacts with its GISD
+impacts, one-to-one, as described in [`site/eval-protocol.qmd`](../site/eval-protocol.qmd#llm-as-judge-evaluation).
+The judge sees only each impact's evidence text and impacted taxa: mechanism and category labels are
+hidden, so that label agreement can be scored afterwards without the pairing being biased towards it.
+Each pair carries a one-sentence `reason`. Judgements are cached per case and reused unless the case's
+extraction is newer; pairs that reuse or invent an id are dropped with a `·` note.
 
-### Scoring
+| Option (`judge`, `run`) | Default | Description |
+|--------|---------|-------------|
+| `--judge-model` | `bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0` | Pydantic AI model id for the judge. |
+| `--judge-concurrency` | `4` | Cases judged in parallel. |
+| `--force-judge` | off | Re-judge cases that already have a judgement. |
 
-Mechanism names from both sides are mapped onto the canonical GISD names (`utils/gisd.py`,
-plus the app's `Bio-fouling`), then each side is collapsed to the most severe category per
-mechanism (MV > MR > MO > MN > MC > DD).
+### Metrics
 
-- **Mechanism P/R/F1** — extracted vs GISD mechanism set per case, reported as micro (pooled
-  tp/fp/fn) and macro (mean over cases). A case with no extracted impacts scores precision 0.
-- **Category on matched mechanisms** — for mechanisms both sides found, exact accuracy and
-  mean absolute distance in category steps. Distance is undefined when either side is DD.
-- **Max category per case** — most severe GISD category vs most severe extracted one, with
-  the same two measures.
+Mechanism names from both sides are mapped onto the canonical GISD names (`utils/gisd.py`, plus the
+app's `Bio-fouling`). Categories are ranked MV > MR > MO > MN > MC > DD throughout.
 
-Cases whose conversion or analysis failed are listed in the summary and excluded.
+1. **Impact detection.** A judged pair is a true positive, an unpaired extracted impact a false
+   positive, an unpaired GISD impact a false negative. Precision, recall, F1 and F2 (recall weighted
+   higher), reported as micro (counts pooled over cases) and macro (mean of per-case scores; a case
+   with nothing extracted scores precision 0).
+2. **Per-class metrics** for EICAT category and mechanism, in two views:
+   - *matched*: classification on judged pairs only. Given the impact was found, was its label right?
+     Micro F1 here equals accuracy.
+   - *detection*: over all impacts, where an impact counts towards a class only if it was paired *and*
+     both sides gave it that label, so missed and spurious impacts count against their class.
+
+   Each view gives per-class P/R/F1/F2 with GISD support, plus micro and macro (unweighted mean over the
+   classes seen on either side) averages. The matched view also gives a confusion matrix.
+3. **Maximum category per case.** The most severe GISD category vs the most severe extracted one:
+   exact accuracy, counts over- and under-estimated, mean absolute distance in category steps, and a
+   confusion matrix. A case with nothing extracted has maximum `none` and counts as under-estimated.
+
+Cases whose conversion, analysis or judging failed are listed in the summary and report, and excluded.
 
 ### Outputs (in the run directory, gitignored)
 
 | File | Contents |
 |------|----------|
-| `metrics.json` | Headline metrics (as printed) plus failures. |
-| `cases.csv` | Per case: mechanism sets, tp/fp/fn, P/R/F1, max categories. |
-| `matches.csv` | Per matched mechanism: GISD vs extracted category and distance. |
-| `impacts.csv` | All extracted impacts, flattened. |
+| `report.md` | The report: all three metric groups as tables, with the figures below. |
+| `figures/` | Confusion matrices (category, mechanism, max category) and per-class F1 bars. |
+| `metrics.json` | Every metric in the report, plus confusion matrices and failures. |
+| `cases.csv` | Per case: impact counts, tp/fp/fn, P/R/F1/F2, max categories. |
+| `pairs.csv` | Per judged pair: GISD vs extracted category and mechanism, judge's reason, both evidence texts. |
+| `impacts.csv` | All extracted impacts, flattened, with the GISD row each was paired to. |
+| `judged/<case>.json` | Judge output per case: model and pairs (indices into the case's GISD rows / extracted impacts). |
 | `extracted/<case>.json` | Raw app result per case: status, error, model, impacts. |
 | `gold.csv` | The GISD rows used as gold, with `case_id`. |
 
@@ -244,8 +278,11 @@ Cases whose conversion or analysis failed are listed in the summary and excluded
 - GISD sometimes spells one reference several ways (`lever_2005_a`/`_b`/`_c`), each its own
   library entry, so save the PDF under every name you want evaluated.
 - GISD gives no vernacular names, so analyses use the scientific name only.
-- Matching is on mechanism only; whether the extracted *evidence* is the same impact GISD
-  recorded is not checked.
+- The judge is an LLM and from the same model family as the default extraction model, so it may
+  favour the extractor's interpretation; spot-check `pairs.csv` (and unpaired rows in `impacts.csv`).
+- GISD records one assessor's reading of a paper and often a subset of its impacts, so extracted
+  impacts GISD did not record count as false positives even when they are genuine; read precision
+  with that in mind.
 - The eval stack runs `mongo:8.2` rather than the `mongo:8.0.21` in `docker-compose.yml`:
   8.0.x refuses to start on Linux kernels >= 6.19
   ([SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912)). Everything else is the
