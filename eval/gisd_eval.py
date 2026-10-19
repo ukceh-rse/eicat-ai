@@ -31,23 +31,14 @@ from pathlib import Path
 import httpx
 import pandas as pd
 
-REPO = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO / "utils"))
-from library import load_library  # noqa: E402
+from eicat_eval.gisd import load_library, merge_countries, read_gisd
+from eicat_eval.paths import COMPOSE_FILES, FEWSHOT_EXAMPLES, GISD_DATA, RUNS, UTILS
+from gisd_judge import DEFAULT_MODEL, judge
+from gisd_report import report
+from gisd_score import score
 
-from gisd_judge import DEFAULT_MODEL, judge  # noqa: E402
-from gisd_report import report  # noqa: E402
-from gisd_score import score  # noqa: E402
-
-DEFAULT_DATA_DIR = REPO / "gisd_data"
-DEFAULT_RUNS_DIR = REPO / "eval" / "runs"
 DEFAULT_API_URL = "http://localhost:18000"
-FEWSHOT_EXAMPLES = REPO / "api" / "src" / "eicat_ai" / "fewshot_examples.json"  # built by build_fewshot.py
-COMPOSE = [
-    "docker", "compose", "-p", "eicat-gisd-eval",
-    "-f", str(REPO / "docker-compose.yml"),
-    "-f", str(REPO / "eval" / "compose.gisd-eval.yml"),
-]  # fmt: skip
+COMPOSE = ["docker", "compose", "-p", "eicat-gisd-eval", *(arg for f in COMPOSE_FILES for arg in ("-f", str(f)))]
 
 POLL_SECONDS = 5
 PAPER_TIMEOUT = 15 * 60
@@ -59,7 +50,7 @@ ANALYSIS_TIMEOUT = 60 * 60
 
 def utils_script(name: str, *args: str) -> None:
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}  # don't leak eval's venv into utils'
-    subprocess.run(["uv", "run", "--project", str(REPO / "utils"), str(REPO / "utils" / name), *args], check=True, env=env)
+    subprocess.run(["uv", "run", "--project", str(UTILS), str(UTILS / name), *args], check=True, env=env)
 
 
 def fetch(data_dir: Path, force: bool) -> None:
@@ -74,23 +65,12 @@ def fetch(data_dir: Path, force: bool) -> None:
 # ── cases ─────────────────────────────────────────────────────────────────────
 
 
-GOLD_IMPACT_KEY = ["Impact mechanism", "EICAT Category", "Evidence for EICAT impact category", "Impacted native species"]
-
-
-def merge_countries(rows: pd.DataFrame) -> pd.DataFrame:
-    """GISD repeats an impact once per country of impact; the app has no country field, so merge those rows."""
-    return rows.groupby(GOLD_IMPACT_KEY, dropna=False, sort=False, as_index=False).agg(
-        lambda s: ", ".join(dict.fromkeys(s.dropna().astype(str))) if s.name == "Countries of impact" else s.iloc[0]
-    )[rows.columns]
-
-
 def load_cases(data_dir: Path, manifest_path: Path, gisd_path: Path) -> tuple[list[dict], pd.DataFrame]:
     """Pair each PDF with its GISD reference, giving one case per (PDF, species)."""
     refs_by_file: dict[str, list[str]] = {}
     for entry in load_library(manifest_path):
         refs_by_file.setdefault(entry["file"], []).append(entry["reference"])
-    gisd = pd.read_csv(gisd_path)
-    gisd["Reference"] = gisd["Reference"].str.strip()
+    gisd = read_gisd(gisd_path)
     # references shown to the extraction model as few-shot examples must never be scored
     fewshot = {e["reference"] for e in json.loads(FEWSHOT_EXAMPLES.read_text())} if FEWSHOT_EXAMPLES.exists() else set()
 
@@ -180,7 +160,7 @@ async def extract_all(cases: list[dict], data_dir: Path, extracted_dir: Path, ap
 
 
 def extract(args: argparse.Namespace) -> Path:
-    out: Path = args.out or DEFAULT_RUNS_DIR / datetime.now().strftime("%Y%m%d_%H%M%S")
+    out: Path = args.out or RUNS / datetime.now().strftime("%Y%m%d_%H%M%S")
     extracted_dir = out / "extracted"
     extracted_dir.mkdir(parents=True, exist_ok=True)
 
@@ -209,7 +189,7 @@ def extract(args: argparse.Namespace) -> Path:
 
 
 def add_extract_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR, help="Directory of manually downloaded PDFs.")
+    p.add_argument("--data-dir", type=Path, default=GISD_DATA, help="Directory of manually downloaded PDFs.")
     p.add_argument("--manifest", type=Path, help="Reference library page from utils/library.py. Default: <data-dir>/references.html")
     p.add_argument("--gisd", type=Path, help="Cleaned GISD CSV. Default: <data-dir>/gisd_clean.csv")
     p.add_argument("--out", type=Path, help="Run directory; pass an existing one to resume. Default: eval/runs/<timestamp>")
@@ -229,7 +209,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("fetch", help="Download the latest GISD data and build or refresh the reference library page.")
-    p.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    p.add_argument("--data-dir", type=Path, default=GISD_DATA)
     p.add_argument("--force", action="store_true", help="Re-download GISD even if gisd.xlsx exists.")
 
     add_extract_args(sub.add_parser("extract", help="Start the app stack and extract impacts from every PDF."))

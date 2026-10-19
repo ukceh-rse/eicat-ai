@@ -23,6 +23,8 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.bedrock import BedrockConverseModel
 from pydantic_ai.providers.bedrock import BedrockProvider
 
+from eicat_eval.gisd import gold_impacts
+
 # GPT-5.5: a different model family from the extraction models, and on a dev re-judge it found matches Claude 3.7
 # Sonnet missed (same impact, different passages) without pairing unrelated impacts
 DEFAULT_MODEL = "bedrock:global.openai.gpt-5.5"
@@ -49,11 +51,6 @@ class Pair(BaseModel):
 
 class Pairing(BaseModel):
     pairs: list[Pair]
-
-
-def gold_impacts(gold: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """GISD rows per case, in file order; a row's position within its case is its gold index."""
-    return {case_id: g.reset_index(drop=True) for case_id, g in gold.groupby("case_id", sort=False)}
 
 
 def describe(tag: str, evidence, species) -> str:

@@ -20,13 +20,8 @@ import json
 import sys
 from pathlib import Path
 
-import pandas as pd
-
-REPO = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO / "eval"))
-from gisd_eval import merge_countries  # noqa: E402
-
-DEFAULT_OUT = REPO / "api" / "src" / "eicat_ai" / "fewshot_examples.json"
+from eicat_eval.gisd import merge_countries, read_gisd
+from eicat_eval.paths import FEWSHOT_EXAMPLES, GISD_CLEAN
 
 # (substring of the GISD reference, species)
 SELECTED = [
@@ -57,8 +52,7 @@ def text(value) -> str:
 
 
 def build(gisd_path: Path) -> list[dict]:
-    gisd = pd.read_csv(gisd_path)
-    gisd["Reference"] = gisd["Reference"].str.strip()
+    gisd = read_gisd(gisd_path)
     examples = []
     for ref_part, species in SELECTED:
         rows = gisd[gisd["Reference"].str.contains(ref_part, regex=False) & (gisd["Species"] == species)]
@@ -85,8 +79,8 @@ def build(gisd_path: Path) -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--gisd", type=Path, default=REPO / "gisd_data" / "gisd_clean.csv")
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--gisd", type=Path, default=GISD_CLEAN)
+    parser.add_argument("--out", type=Path, default=FEWSHOT_EXAMPLES)
     args = parser.parse_args()
     examples = build(args.gisd)
     args.out.write_text(json.dumps(examples, indent=2, ensure_ascii=False) + "\n")

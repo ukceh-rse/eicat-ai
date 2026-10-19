@@ -22,27 +22,17 @@ Categories are ranked MV > MR > MO > MN > MC > DD throughout.
 from __future__ import annotations
 
 import json
-import sys
 from collections import Counter
 from pathlib import Path
 from statistics import fmean
 
 import pandas as pd
 
-from gisd_judge import gold_impacts
+from eicat_eval.eicat import SEVERITY, by_severity
+from eicat_eval.gisd import canonical_mechanism, gold_impacts
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "utils"))
-from gisd import normalise_mechanism  # noqa: E402
-
-CATEGORIES = ["MV", "MR", "MO", "MN", "MC", "DD"]  # most to least severe
-SEVERITY = {c: len(CATEGORIES) - 1 - i for i, c in enumerate(CATEGORIES)}  # MV=5 ... DD=0
+CATEGORIES = by_severity(descending=True)  # MV ... DD, the label order of every category table
 NONE = "none"  # max category of a case where the app extracted nothing
-# App mechanism names that utils/gisd.py does not already map onto the GISD canonical form.
-APP_MECHANISM_ALIASES = {"Bio-fouling": "Bio-fouling or other direct physical disturbance"}
-
-
-def canonical_mechanism(mechanism: str) -> str:
-    return normalise_mechanism(APP_MECHANISM_ALIASES.get(mechanism, mechanism))
 
 
 def max_category(categories) -> str:
