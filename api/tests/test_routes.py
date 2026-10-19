@@ -6,12 +6,16 @@ from httpx import ASGITransport, AsyncClient
 from mongomock_motor import AsyncMongoMockClient
 
 from eicat_ai.main import app
-from eicat_ai.migration import migrate_legacy_analyses
+from eicat_ai.migration import migrate_legacy_analyses, reanchor_evidence
 from eicat_ai.models import (
+    Actor,
+    ActorKind,
     Analysis,
     AnalysisStatus,
     AuditEvent,
     Category,
+    EvidenceSpan,
+    FieldChange,
     Impact,
     ImpactOrigin,
     ImpactState,
@@ -20,6 +24,7 @@ from eicat_ai.models import (
     PaperStatus,
     ReviewedImpact,
     RunStatus,
+    Sighting,
     SpeciesNames,
 )
 from eicat_ai.routers import analyses as analyses_router
@@ -151,6 +156,16 @@ async def test_span_not_matching_paper_is_rejected(client):
     assert stored.impacts[0] == analysis.impacts[0]
 
 
+async def test_reviewer_spans_are_not_approximate(client):
+    analysis, _ = await analysis_with((False, ImpactState.ACTIVE))
+    start = MARKDOWN.index(EVIDENCE)
+    span = {"start": start, "end": start + len(EVIDENCE), "text": EVIDENCE, "approximate": True}
+    r = await client.patch(f"/analyses/{analysis.id}/impacts/{analysis.impacts[0].id}", json={"evidence": [span]})
+    assert r.status_code == 200
+    stored = await Analysis.get(analysis.id)
+    assert [s.approximate for s in stored.impacts[0].evidence] == [False]
+
+
 async def test_invalid_category_is_rejected(client):
     analysis, _ = await analysis_with((False, ImpactState.ACTIVE))
     r = await client.patch(
@@ -239,3 +254,79 @@ async def test_migration_is_idempotent_and_leaves_results(client):
     assert impact.evidence[0].start == MARKDOWN.index(EVIDENCE)
     assert stored.model_dump()["results"] == results
     assert await AuditEvent.find(AuditEvent.analysis_id == analysis.id).count() == 1
+
+
+async def test_reanchor_evidence_anchors_stored_unanchored_spans(client):
+    analysis, pid = await analysis_with((False, ImpactState.ACTIVE), (False, ImpactState.SUPPRESSED))
+    unanchored = [EvidenceSpan(text=EVIDENCE)]
+    active, suppressed = analysis.impacts
+    active.evidence = unanchored
+    suppressed.evidence = unanchored
+    suppressed.sightings = [Sighting(run_id="r0", at=analysis.created_at, ai=ai(), evidence=unanchored)]
+    reviewer = [EvidenceSpan(start=0, end=5, text="Intro")]
+    human = ReviewedImpact(paper_id=pid, origin=ImpactOrigin.HUMAN, current=ai(), evidence=reviewer, verified=True)
+    analysis.impacts.append(human)
+    await analysis.save()
+
+    await reanchor_evidence()
+    await reanchor_evidence()
+
+    stored = await Analysis.get(analysis.id)
+    start = MARKDOWN.index(EVIDENCE)
+    anchored = [EvidenceSpan(start=start, end=start + len(EVIDENCE), text=EVIDENCE)]
+    active, suppressed, human = stored.impacts
+    assert active.evidence == anchored and active.current.evidence == EVIDENCE
+    assert suppressed.evidence == anchored and suppressed.sightings[0].evidence == anchored
+    assert human.evidence == reviewer
+
+
+async def test_reanchor_evidence_takes_paper_text_unless_a_reviewer_changed_it(client):
+    analysis, _ = await analysis_with((False, ImpactState.ACTIVE), (False, ImpactState.ACTIVE))
+    start = MARKDOWN.index("Rats ate")
+    span = [EvidenceSpan(start=start, end=start + 8, text="Rats ate")]
+    untouched, edited = analysis.impacts
+    untouched.evidence = edited.evidence = span
+    edited.current.evidence = "reviewer text"
+    await analysis.save()
+    await AuditEvent(
+        analysis_id=analysis.id, impact_id=edited.id, actor=Actor(kind=ActorKind.HUMAN), action="updated",
+        changes=[FieldChange(field="evidence", old=[], new=[s.model_dump() for s in span])],
+    ).insert()
+
+    await reanchor_evidence()
+
+    untouched, edited = (await Analysis.get(analysis.id)).impacts
+    assert (untouched.current.evidence, untouched.ai.evidence) == ("Rats ate", EVIDENCE)
+    assert not untouched.evidence_edited
+    assert (edited.current.evidence, edited.evidence_edited) == ("reviewer text", True)
+
+
+async def test_reanchor_evidence_runs_once(client):
+    await reanchor_evidence()
+    analysis, _ = await analysis_with((False, ImpactState.ACTIVE))
+    analysis.impacts[0].evidence = [EvidenceSpan(text=EVIDENCE)]
+    await analysis.save()
+
+    await reanchor_evidence()
+
+    [impact] = (await Analysis.get(analysis.id)).impacts
+    assert impact.evidence == [EvidenceSpan(text=EVIDENCE)]
+
+
+async def test_reanchor_evidence_keeps_spans_that_stay_unanchored(client):
+    analysis, _ = await analysis_with((False, ImpactState.ACTIVE))
+    [impact] = analysis.impacts
+    impact.ai.evidence = f"{EVIDENCE} Zebras juggle flaming torches quietly at dawn."
+    impact.current.evidence = impact.ai.evidence
+    impact.evidence = [EvidenceSpan(text=impact.ai.evidence)]
+    await analysis.save()
+
+    await reanchor_evidence()
+    first = await Analysis.get(analysis.id)
+    await reanchor_evidence()
+    second = await Analysis.get(analysis.id)
+
+    [impact] = first.impacts
+    assert [s.start is not None for s in impact.evidence] == [True, False]
+    assert impact.current.evidence == f"{EVIDENCE}\n\nZebras juggle flaming torches quietly at dawn."
+    assert second.impacts == first.impacts

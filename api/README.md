@@ -36,7 +36,8 @@ Each run's raw AI output stays in `results[paper_id]`, in the same shape as befo
 
 - a stable `id`, its `paper_id`, an `origin` (`ai` or `human`) and the `run_id` that produced it
 - `ai`: the frozen AI output (null for human-created impacts) and `current`: the reviewed values
-- `evidence`: spans of the paper markdown (`{start, end, text}`); spans with null offsets are AI passages that could not be found in the paper
+- `evidence`: spans of the paper markdown (`{start, end, text, approximate}`); `approximate` spans are the closest passage to AI evidence the paper doesn't contain word for word. Spans with null offsets are AI sentences sharing no words with the paper. An AI impact's `current.evidence` is its spans' texts in order, so the paper text for each anchored span and the AI's sentence for each unanchored one; the AI's wording is in `ai.evidence`
+- `evidence_edited`: true once a reviewer has changed the spans (saving approximate spans as they are only clears their `approximate` flag). Until then, differences between `current.evidence` and `ai.evidence` come from anchoring, not from review
 - `verified` (human-created impacts are always verified) and a `state`: `active`, `removed`, `superseded` (replaced by a re-run) or `suppressed` (re-found by a run while an expert decision holds its paper and mechanism; `held_by` names that impact and `sightings` keeps every run's extraction)
 
 Impacts of papers removed from the analysis are hidden, and come back unchanged if the paper is added again.

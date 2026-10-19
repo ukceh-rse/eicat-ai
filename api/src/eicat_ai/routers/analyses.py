@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import datetime, timezone
 from typing import Callable, Dict, List, Literal, Optional, Tuple
@@ -11,7 +12,7 @@ from pydantic import BaseModel, ValidationError
 
 from eicat_ai.agents import data_extraction_agent
 from eicat_ai import review
-from eicat_ai.anchoring import anchor, validate_spans
+from eicat_ai.anchoring import Locator, validate_spans
 from eicat_ai.converters import extract_impacts
 from eicat_ai.models import (
     ActorKind,
@@ -48,6 +49,13 @@ async def _write_events(analysis_id: PydanticObjectId, events: List[Event]) -> N
 SAVE_ATTEMPTS = 3
 
 
+def _anchored(markdown: str, impacts: List[Impact]) -> List[Tuple[Impact, List[EvidenceSpan]]]:
+    """Each impact with its evidence anchored in the paper. Anchoring is CPU-bound, so runs call this off the event
+    loop to keep the API responsive."""
+    locator = Locator(markdown)
+    return [(i, locator.anchor(i.evidence)) for i in impacts]
+
+
 async def _run_analysis(analysis_id: PydanticObjectId, run_id: str) -> None:
     analysis = await Analysis.get(analysis_id)
     if analysis is None:
@@ -65,7 +73,7 @@ async def _run_analysis(analysis_id: PydanticObjectId, run_id: str) -> None:
                 continue
             impacts, paper_usage = await extract_impacts(agent, Paper(content=doc.markdown), analysis.species)
             results[str(paper_id)] = impacts
-            extracted[str(paper_id)] = [(i, anchor(doc.markdown, i.evidence)) for i in impacts]
+            extracted[str(paper_id)] = await asyncio.to_thread(_anchored, doc.markdown, impacts)
             for k, v in paper_usage.items():
                 usage[k] = usage.get(k, 0) + v
     except Exception as e:
@@ -295,7 +303,8 @@ async def _validated_spans(paper_id: str, spans: List[EvidenceSpan]) -> List[Evi
         validate_spans(doc.markdown, spans)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    return spans
+    # a reviewer chose these passages, so none stands in for evidence the AI misquoted
+    return [s.model_copy(update={"approximate": False}) for s in spans]
 
 
 async def _review(analysis: Analysis, action: Callable[[], List[Event]]) -> AnalysisResponse:
