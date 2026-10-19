@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 from beanie import PydanticObjectId
 from loguru import logger
 
+from eicat_ai import run_queue
 from eicat_ai.anchoring import Locator
 from eicat_ai.models import (
     ActorKind,
@@ -16,6 +17,7 @@ from eicat_ai.models import (
     RunStatus,
 )
 from eicat_ai.review import Event, as_found
+from eicat_ai.run_queue import write_events
 
 
 async def _locator(locators: Dict[str, Locator], paper_id: str) -> Locator:
@@ -111,3 +113,25 @@ async def reanchor_evidence() -> None:
     if repaired:
         logger.info(f"Brought evidence of {repaired} impacts and sightings in {analyses} analyses in line with the paper")
     await migrations.insert_one({"_id": REANCHOR, "at": datetime.now(timezone.utc)})
+
+
+INTERRUPTED = "Interrupted by an API restart"
+
+
+async def recover_runs() -> None:
+    """Fail runs a restart cut off, leaving their papers' impacts as they were, bring each analysis's status in line
+    with its papers' runs (design D7), and start processing the queued runs."""
+    now = datetime.now(timezone.utc)
+    for analysis in await Analysis.find_all().to_list():
+        before = (analysis.status, analysis.error, analysis.completed_at)
+        events: List[Event] = []
+        for run in analysis.runs:
+            if run.status == RunStatus.RUNNING:
+                run.status, run.completed_at, run.error = RunStatus.FAILED, now, INTERRUPTED
+                events.append(Event(at=now, actor=ActorKind.SYSTEM, action="run_failed", run_id=run.id, note=INTERRUPTED))
+        analysis.refresh_status()
+        if events or (analysis.status, analysis.error, analysis.completed_at) != before:
+            await analysis.save()
+            await write_events(analysis.id, events)
+        if any(r.status == RunStatus.QUEUED for r in analysis.runs):
+            run_queue.wake(analysis.id)

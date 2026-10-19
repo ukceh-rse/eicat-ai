@@ -102,23 +102,29 @@ curl -X POST $API/analyses/$ANALYSIS/impacts/$IMPACT/remove \
 curl -X POST $API/analyses/$ANALYSIS/impacts/$IMPACT/restore
 ```
 
-Review requests return the updated analysis. They return 409 while the analysis is running, when the action doesn't fit the impact's state (e.g. editing a removed impact), or when another request changed the analysis at the same time (reload and retry). Invalid values return 422.
+Review requests return the updated analysis. They return 409 while the impact's paper is queued or running (other papers stay reviewable), when the action doesn't fit the impact's state (e.g. editing a removed impact), or when another request changed the analysis at the same time (reload and retry). Invalid values return 422.
 
-### Re-running an analysis
+### Running papers
 
-A re-run supersedes unverified AI impacts. Human-created and removed impacts are never changed. When verified AI impacts exist, the run must say whether to keep or discard them, otherwise it returns 409 with the counts:
+Each run covers one paper. `POST /run` queues a run for each paper given as `paper_id` (repeatable), or for every paper of the analysis when none is given. An analysis processes its queued runs one at a time, in the order queued; papers already queued or running aren't queued again. A failed paper keeps its error in `paper_runs` and the next run starts.
+
+A re-run of a paper supersedes that paper's unverified AI impacts; other papers are untouched. Human-created and removed impacts are never changed. When the papers to be queued have verified AI impacts, the request must say whether to keep or discard them, otherwise it returns 409 with their counts:
 
 ```bash
-curl -X POST $API/analyses/$ANALYSIS/run
+curl -X POST $API/analyses/$ANALYSIS/run                        # every paper
 # 409 {"detail": "...", "verified": 3, "unverified": 7}
 curl -X POST "$API/analyses/$ANALYSIS/run?verified=keep"
+curl -X POST "$API/analyses/$ANALYSIS/run?paper_id=$PAPER"     # one paper
+curl -X POST $API/analyses/$ANALYSIS/runs/$RUN/cancel          # a queued run; 409 once it has started
 ```
 
-An AI impact whose paper and mechanism are held by an active verified impact, an active human-created impact or a removed impact doesn't become active; it is stored as `suppressed`. Each run is listed in `runs` with its model, usage and choice.
+`paper_runs` gives each paper's state (`not_run`, `queued`, `running`, `completed`, `failed`), its latest run and when it last completed a run. The analysis `status` follows from them: `running` while any paper is queued or running, then `failed` if any paper's latest run failed, `completed` if any has completed, otherwise `pending`. `results[paper_id]` holds the AI's impacts from that paper's latest completed run. Removing a paper cancels its queued run or stops its running one. Queued runs survive an API restart; a run cut off by the restart is failed as interrupted.
+
+An AI impact whose paper and mechanism are held by an active verified impact, an active human-created impact or a removed impact doesn't become active; it is stored as `suppressed`. Each run is listed in `runs` with its paper, state, model, usage, choice and, if it failed, its error.
 
 ### Audit trail
 
-Every review and run action is logged in the `audit_events` collection with its time (UTC), actor (`{"kind": "human" | "ai" | "system", "user_id": null}`), action, changed fields (`{field, old, new}`) and optional note. Actions: `created`, `updated`, `verified`, `unverified`, `removed`, `restored`, `superseded`, `suppressed`, `sighted`, `run_started`, `run_completed`, `run_failed`. Events can't be changed through the API and are kept when the analysis is deleted.
+Every review and run action is logged in the `audit_events` collection with its time (UTC), actor (`{"kind": "human" | "ai" | "system", "user_id": null}`), action, changed fields (`{field, old, new}`) and optional note. Actions: `created`, `updated`, `verified`, `unverified`, `removed`, `restored`, `superseded`, `suppressed`, `sighted`, `run_queued`, `run_started`, `run_completed`, `run_failed`, `run_cancelled`. Events can't be changed through the API and are kept when the analysis is deleted.
 
 ```bash
 curl "$API/analyses/$ANALYSIS/audit"                    # all events, oldest first
