@@ -11,7 +11,7 @@ from eicat_ai.models import (
     ReviewedImpact,
     VerifiedChoice,
 )
-from eicat_ai.review import apply_run
+from eicat_ai.review import apply_run, as_found
 
 NOW = datetime(2026, 10, 19, tzinfo=timezone.utc)
 P = "paper-1"
@@ -54,7 +54,8 @@ def test_unverified_ai_impact_is_superseded_and_replaced():
     assert next(i for i in impacts if i.id == old.id).state == ImpactState.SUPERSEDED
     [new] = active(impacts)
     assert (new.origin, new.run_id, new.verified, new.current.category) == (ImpactOrigin.AI, "run-1", False, Category.MAJOR)
-    assert new.ai == new.current and new.evidence[0].text == "Rats"
+    # the current evidence is the paper text the spans cover; the AI's wording stays on `ai`
+    assert new.current == new.ai.model_copy(update={"evidence": "Rats"}) and new.evidence[0].text == "Rats"
     superseded = next(e for e in events if e.action == "superseded")
     assert (superseded.actor, superseded.impact_id, superseded.run_id) == (ActorKind.SYSTEM, old.id, "run-1")
     assert superseded.changes[0].model_dump() == {"field": "state", "old": "active", "new": "superseded"}
@@ -180,3 +181,26 @@ def test_sighting_follows_a_new_holder():
     assert record.held_by == human.id
     [sighted] = [e for e in events if e.impact_id == record.id]
     assert sighted.changes[0].model_dump() == {"field": "held_by", "old": holder.id, "new": human.id}
+
+
+def test_as_found_takes_paper_text_of_anchored_spans():
+    quote = ai(evidence="Rats were said to eat eggs.")
+    spans = [EvidenceSpan(start=0, end=4, text="Rats", approximate=True), EvidenceSpan(start=9, end=13, text="eggs")]
+    assert as_found(quote, spans).evidence == "Rats\n\neggs"
+    assert quote.evidence == "Rats were said to eat eggs."
+    assert as_found(quote, []).evidence == quote.evidence
+
+
+def test_run_created_impacts_have_unedited_evidence():
+    impacts, _ = run([], extracted(ai()))
+    assert [i.evidence_edited for i in impacts] == [False]
+
+
+def test_as_found_keeps_ai_text_only_for_unanchored_spans():
+    quote = ai(evidence="Rats ate eggs. Eggs vanished. Moons are cheese.")
+    spans = [
+        EvidenceSpan(start=0, end=4, text="Rats"),
+        EvidenceSpan(start=9, end=13, text="eggs", approximate=True),
+        EvidenceSpan(text="Moons are cheese."),
+    ]
+    assert as_found(quote, spans).evidence == "Rats\n\neggs\n\nMoons are cheese."

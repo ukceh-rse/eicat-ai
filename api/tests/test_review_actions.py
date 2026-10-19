@@ -64,10 +64,26 @@ def test_evidence_change_records_spans_and_recomputes_text():
     events = edit_impact(impact, {}, new, None, None, NOW)
     [evidence] = events[0].changes
     assert evidence.field == "evidence"
-    assert evidence.old == [{"start": 0, "end": 4, "text": "Rats"}]
+    assert evidence.old == [{"start": 0, "end": 4, "text": "Rats", "approximate": False}]
     assert [s["text"] for s in evidence.new] == ["eggs", "nest"]
     assert impact.current.evidence == "eggs\n\nnest"
     assert impact.verified
+    assert impact.evidence_edited
+
+
+def test_accepting_approximate_spans_is_not_an_evidence_edit():
+    impact = ai_impact()
+    impact.evidence = [s.model_copy(update={"approximate": True}) for s in SPANS]
+    events = edit_impact(impact, {}, [s.model_copy(update={"approximate": False}) for s in SPANS], None, None, NOW)
+    assert [s.approximate for s in impact.evidence] == [False] * len(SPANS)
+    assert not impact.evidence_edited
+    assert [e.action for e in events] == ["updated", "verified"]
+
+
+def test_field_edit_leaves_evidence_unedited():
+    impact = ai_impact()
+    edit_impact(impact, {"mechanism": "Competition"}, None, None, None, NOW)
+    assert not impact.evidence_edited
 
 
 def test_unchanged_fields_are_not_an_edit():

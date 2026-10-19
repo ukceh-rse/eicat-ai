@@ -214,11 +214,13 @@ class AnalysisStatus(str, Enum):
 
 
 class EvidenceSpan(BaseModel):
-    """A passage of the paper markdown; offsets are None when the passage could not be located (unanchored)."""
+    """A passage of the paper markdown; offsets are None when the passage could not be located (unanchored).
+    Approximate spans are the closest passage to AI evidence that the paper doesn't contain word for word."""
 
     start: Optional[int] = None
     end: Optional[int] = None
     text: str
+    approximate: bool = False
 
 
 class Sighting(BaseModel):
@@ -274,6 +276,7 @@ class ReviewedImpact(BaseModel):
     ai: Optional[Impact] = None
     current: Impact
     evidence: List[EvidenceSpan] = Field(default_factory=list)
+    evidence_edited: bool = False  # a reviewer changed the spans; until then `current.evidence` derives from the AI's
     verified: bool = False
     state: ImpactState = ImpactState.ACTIVE
     held_by: Optional[str] = None  # suppressed only: the impact holding this key

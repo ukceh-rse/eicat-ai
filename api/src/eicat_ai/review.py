@@ -62,6 +62,16 @@ def holds_key(impact: ReviewedImpact) -> bool:
     return impact.state == ImpactState.ACTIVE and (impact.verified or impact.origin == ImpactOrigin.HUMAN)
 
 
+def as_found(ai: Impact, spans: List[EvidenceSpan]) -> Impact:
+    """An AI impact as reviewed: its evidence is its spans' texts, so each anchored span shows the paper text it
+    covers even where the AI paraphrased, and only an unanchored span keeps the AI's sentence; the AI's own wording
+    stays on `ai`."""
+    current = ai.model_copy(deep=True)
+    if spans:
+        current.evidence = evidence_text(spans)
+    return current
+
+
 def apply_run(
     impacts: List[ReviewedImpact],
     new_by_paper: Extracted,
@@ -94,7 +104,7 @@ def apply_run(
             if holder is None:
                 imp = ReviewedImpact(
                     paper_id=paper_id, origin=ImpactOrigin.AI, run_id=run_id,
-                    ai=ai, current=ai.model_copy(deep=True), evidence=spans,
+                    ai=ai, current=as_found(ai, spans), evidence=spans,
                 )
                 impacts.append(imp)
                 events.append(Event(at=now, actor=ActorKind.AI, action="created", impact_id=imp.id, run_id=run_id))
@@ -104,7 +114,7 @@ def apply_run(
             if record is None:
                 record = ReviewedImpact(
                     paper_id=paper_id, origin=ImpactOrigin.AI, run_id=run_id,
-                    ai=ai, current=ai.model_copy(deep=True), evidence=spans,
+                    ai=ai, current=as_found(ai, spans), evidence=spans,
                     state=ImpactState.SUPPRESSED, held_by=holder.id, sightings=[sighting],
                 )
                 impacts.append(record)
@@ -118,7 +128,7 @@ def apply_run(
             # the record mirrors its latest sighting, so restoring it needs only a state change
             changes = [FieldChange(field="held_by", old=record.held_by, new=holder.id)] if record.held_by != holder.id else []
             record.sightings.append(sighting)
-            record.run_id, record.ai, record.current, record.evidence = run_id, ai, ai.model_copy(deep=True), spans
+            record.run_id, record.ai, record.current, record.evidence = run_id, ai, as_found(ai, spans), spans
             record.held_by = holder.id
             events.append(Event(
                 at=now, actor=ActorKind.AI, action="sighted", impact_id=record.id, run_id=run_id, changes=changes,
@@ -182,6 +192,9 @@ def edit_impact(
     impact.current = current
     events: List[Event] = []
     changes = impact_changes(before, impact)
+    # accepting approximate spans as they are clears their flag, but isn't a change of evidence
+    if [(s.start, s.end, s.text) for s in before.evidence] != [(s.start, s.end, s.text) for s in impact.evidence]:
+        impact.evidence_edited = True
     if changes:
         events.append(Event(
             at=now, actor=ActorKind.HUMAN, action="updated", impact_id=impact.id, changes=changes, note=note,

@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from eicat_ai.migration import migrate_legacy_analyses
+from eicat_ai.migration import migrate_legacy_analyses, reanchor_evidence
 from eicat_ai.models import Analysis, AuditEvent, PaperDoc
 from eicat_ai.routers.analyses import router as analyses_router
 from eicat_ai.routers.gbif import router as gbif_router
@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
         database=client[settings.mongodb_db], document_models=[PaperDoc, Analysis, AuditEvent]
     )
     await migrate_legacy_analyses()
+    await reanchor_evidence()
     yield
     client.close()
 
