@@ -6,7 +6,7 @@ import PaperText from '../components/PaperText'
 import SpanList from '../components/SpanList'
 import { anchored } from '../components/impactFields'
 import { useAnalysesStore } from '../store/analysesStore'
-import type { EvidenceSpan } from '../types'
+import { isLocked, type EvidenceSpan } from '../types'
 import { useAnalysis } from './useAnalysis'
 
 // an impact's evidence in the paper: its spans highlighted, and reselected by selecting paper text
@@ -32,7 +32,8 @@ export default function EvidencePage() {
   const changed = (spans !== null && JSON.stringify(spans) !== JSON.stringify(impact.evidence))
     || current.some((s) => s.approximate)
   const unanchored = current.some((s) => s.start === null)
-  const readOnly = analysis.status === 'running' || impact.state !== 'active'
+  const locked = isLocked(analysis, impact.paper_id)
+  const readOnly = locked || impact.state !== 'active'
   const filename = papers.find((p) => p.id === impact.paper_id)?.filename ?? impact.paper_id
   const back = () => navigate(`/analyses/${analysis.id}?impact=${impact.id}`)
   // the AI's own wording, shown where the spans stand in for it: closest passages, or sentences not found
@@ -75,7 +76,7 @@ export default function EvidencePage() {
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Evidence ({current.length})</Typography>
           {readOnly && (
             <Alert severity="info">
-              {analysis.status === 'running' ? 'Review is paused while the analysis runs.' : 'Only active impacts can be edited.'}
+              {locked ? 'Review of this paper is paused while it runs.' : 'Only active impacts can be edited.'}
             </Alert>
           )}
           <SpanList

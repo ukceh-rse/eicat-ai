@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
-  Accordion, AccordionDetails, AccordionSummary, Alert, Box, Checkbox, Chip, Collapse, IconButton, ListItemIcon,
-  ListItemText, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography,
+  Accordion, AccordionDetails, AccordionSummary, Alert, Box, Checkbox, Chip, CircularProgress, Collapse, IconButton,
+  ListItemIcon, ListItemText, Menu, MenuItem, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip,
+  Typography,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
@@ -13,6 +14,9 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import RestoreIcon from '@mui/icons-material/Undo'
 import PostAddIcon from '@mui/icons-material/PostAdd'
 import CancelIcon from '@mui/icons-material/Cancel'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import ReplayIcon from '@mui/icons-material/Replay'
+import CancelScheduleSendIcon from '@mui/icons-material/CancelScheduleSend'
 import { CategoryChip } from './CategoryChip'
 import ImpactHistoryDrawer from './ImpactHistoryDrawer'
 import ReasonDialog from './ReasonDialog'
@@ -20,13 +24,42 @@ import { SpanStatus } from './SpanList'
 import { CategorySelect, ConfidenceSelect, MechanismSelect, ReversibilitySelect, SpeciesInput } from './ImpactInputs'
 import { FIELD_LABELS, REVERSIBILITIES, changedFromAi, needsReversibility, readable } from './impactFields'
 import { useAnalysesStore } from '../store/analysesStore'
-import type { AnalysisResponse, Impact, ImpactFields, PaperResponse, ReviewedImpact } from '../types'
+import {
+  isLocked, type AnalysisResponse, type Impact, type ImpactFields, type PaperResponse, type PaperRunState,
+  type ReviewedImpact,
+} from '../types'
 
 interface Props {
   analysis: AnalysisResponse
   papers: PaperResponse[]
-  // review is locked while the analysis is running
-  readOnly: boolean
+  // queues runs of the papers, confirming first what happens to their impacts
+  onRun: (paperIds: string[], title: string) => void
+}
+
+const when = (at: string) => new Date(at.endsWith('Z') ? at : `${at}Z`).toLocaleString()
+
+const RUN_LABELS = { queued: 'Queued', running: 'Running', completed: 'Completed', failed: 'Failed' } as const
+
+// the paper's run state and when it last completed a run
+function RunStateChips({ run }: { run: PaperRunState }) {
+  return (
+    <>
+      {run.state === 'not_run' ? (
+        <Chip label="Not run yet" size="small" variant="outlined" sx={{ mr: 1 }} />
+      ) : (
+        <Chip
+          label={RUN_LABELS[run.state]} size="small" variant="outlined" sx={{ mr: 1 }} data-testid="run-state"
+          color={run.state === 'failed' ? 'error' : run.state === 'completed' ? 'default' : 'warning'}
+          icon={run.state === 'running' ? <CircularProgress size={12} color="inherit" /> : undefined}
+        />
+      )}
+      {run.last_completed_at && (
+        <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+          Last run {when(run.last_completed_at)}
+        </Typography>
+      )}
+    </>
+  )
 }
 
 function paperName(papers: PaperResponse[], id: string) {
@@ -119,8 +152,8 @@ function OriginCell({ impact }: { impact: ReviewedImpact }) {
   )
 }
 
-export default function ImpactsPanel({ analysis, papers, readOnly }: Props) {
-  const { patchImpact, removeImpact, restoreImpact, removePaper } = useAnalysesStore()
+export default function ImpactsPanel({ analysis, papers, onRun }: Props) {
+  const { patchImpact, removeImpact, restoreImpact, removePaper, cancelRun } = useAnalysesStore()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [history, setHistory] = useState<ReviewedImpact | null>(null)
@@ -212,7 +245,7 @@ export default function ImpactsPanel({ analysis, papers, readOnly }: Props) {
   )
 
   const row = (impact: ReviewedImpact) => {
-    const lock = readOnly
+    const lock = isLocked(analysis, impact.paper_id)
     return [
       <TableRow
         key={impact.id} hover data-testid="impact-row" ref={impact.id === highlight ? rowRef : undefined}
@@ -328,6 +361,9 @@ export default function ImpactsPanel({ analysis, papers, readOnly }: Props) {
         const suppressed = impacts.filter((x) => x.state === 'suppressed')
         const verified = active.filter((x) => x.verified || x.origin === 'human').length
         const run = paperId in analysis.results || impacts.length > 0
+        const runState = analysis.paper_runs[paperId] ?? { state: 'not_run' }
+        const locked = isLocked(analysis, paperId)
+        const name = paperName(papers, paperId)
         const stop = (e: React.SyntheticEvent) => e.stopPropagation()
         return (
           <Accordion
@@ -336,8 +372,9 @@ export default function ImpactsPanel({ analysis, papers, readOnly }: Props) {
             sx={{ border: '1px solid', borderColor: 'divider', mb: 1, '&:before': { display: 'none' } }}
           >
             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ '& .MuiAccordionSummary-content': { alignItems: 'center' } }}>
-              <Typography sx={{ fontWeight: 600, mr: 2 }}>{paperName(papers, paperId)}</Typography>
-              {run ? (
+              <Typography sx={{ fontWeight: 600, mr: 2 }}>{name}</Typography>
+              <RunStateChips run={runState} />
+              {run && (
                 <>
                   <Chip label={`${active.length} impact${active.length !== 1 ? 's' : ''}`} size="small" sx={{ mr: 1 }} />
                   <Chip
@@ -345,24 +382,53 @@ export default function ImpactsPanel({ analysis, papers, readOnly }: Props) {
                     color={active.length > 0 && verified === active.length ? 'success' : 'default'} variant="outlined"
                   />
                 </>
-              ) : (
-                <Chip label="Not run yet" size="small" variant="outlined" />
               )}
               <Box sx={{ ml: 'auto', mr: 1, display: 'flex' }} onClick={stop} onFocus={stop}>
+                {runState.state === 'queued' && (
+                  <Tooltip title="Cancel the queued run">
+                    <IconButton
+                      component="span" size="small" aria-label="Cancel run"
+                      onClick={() => act(() => cancelRun(aid, runState.run_id!))}
+                    >
+                      <CancelScheduleSendIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {!locked && (
+                  runState.last_completed_at ? (
+                    <Tooltip title="Re-run this paper">
+                      <IconButton
+                        component="span" size="small" aria-label="Re-run"
+                        onClick={() => onRun([paperId], `Re-run ${name}`)}
+                      >
+                        <ReplayIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="Run this paper">
+                      <IconButton
+                        component="span" size="small" aria-label="Run" onClick={() => onRun([paperId], `Run ${name}`)}
+                      >
+                        <PlayArrowIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )
+                )}
                 <Tooltip title="Add an impact from this paper">
                   <span>
                     <IconButton
-                      component="span" size="small" disabled={readOnly} aria-label="Add an impact from this paper"
+                      component="span" size="small" disabled={locked} aria-label="Add an impact from this paper"
                       onClick={() => navigate(`/analyses/${aid}/papers/${paperId}/new-impact`)}
                     >
                       <PostAddIcon fontSize="small" />
                     </IconButton>
                   </span>
                 </Tooltip>
+                {/* removing the paper is also how a running run is stopped, so it stays available */}
                 <Tooltip title="Remove from analysis">
                   <span>
                     <IconButton
-                      component="span" size="small" disabled={readOnly} aria-label="Remove from analysis"
+                      component="span" size="small" aria-label="Remove from analysis"
                       onClick={() => act(() => removePaper(aid, paperId))}
                     >
                       <CancelIcon fontSize="small" />
@@ -372,6 +438,14 @@ export default function ImpactsPanel({ analysis, papers, readOnly }: Props) {
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 0 }}>
+              {locked && (
+                <Alert severity="info" sx={{ borderRadius: 0 }}>
+                  Review of this paper is paused while it is {runState.state}.
+                </Alert>
+              )}
+              {runState.state === 'failed' && (
+                <Alert severity="error" sx={{ borderRadius: 0 }}>The last run failed: {runState.error ?? 'unknown error'}</Alert>
+              )}
               <Table size="small" sx={{ tableLayout: 'fixed' }}>
                 <colgroup>{COLUMNS.map((w, i) => <col key={i} style={w ? { width: w } : undefined} />)}</colgroup>
                 <TableHead>
@@ -466,13 +540,13 @@ export default function ImpactsPanel({ analysis, papers, readOnly }: Props) {
 
       <Menu anchorEl={menu?.anchor} open={menu !== null} onClose={() => setMenu(null)}>
         {menu?.impact.state === 'active' && (
-          <MenuItem disabled={readOnly} onClick={() => { setConfirm({ action: 'remove', impact: menu.impact }); setMenu(null) }}>
+          <MenuItem disabled={isLocked(analysis, menu.impact.paper_id)} onClick={() => { setConfirm({ action: 'remove', impact: menu.impact }); setMenu(null) }}>
             <ListItemIcon><DeleteOutlineIcon fontSize="small" /></ListItemIcon>
             <ListItemText>Remove</ListItemText>
           </MenuItem>
         )}
         {(menu?.impact.state === 'removed' || menu?.impact.state === 'suppressed') && (
-          <MenuItem disabled={readOnly} onClick={() => { setConfirm({ action: 'restore', impact: menu.impact }); setMenu(null) }}>
+          <MenuItem disabled={isLocked(analysis, menu.impact.paper_id)} onClick={() => { setConfirm({ action: 'restore', impact: menu.impact }); setMenu(null) }}>
             <ListItemIcon><RestoreIcon fontSize="small" /></ListItemIcon>
             <ListItemText>Restore</ListItemText>
           </MenuItem>

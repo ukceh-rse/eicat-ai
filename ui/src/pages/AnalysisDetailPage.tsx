@@ -13,7 +13,14 @@ import { AnalysisStatusChip } from '../components/StatusChips'
 import AddPapersDialog from '../components/AddPapersDialog'
 import ImpactsPanel from '../components/ImpactsPanel'
 import RerunDialog, { type RerunCounts } from '../components/RerunDialog'
-import type { VerifiedChoice } from '../types'
+import { isLocked, type VerifiedChoice } from '../types'
+
+// runs waiting for the reviewer to confirm what happens to the papers' impacts
+interface PendingRun {
+  paperIds: string[]
+  title: string
+  counts: RerunCounts
+}
 
 export default function AnalysisDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -23,7 +30,7 @@ export default function AnalysisDetailPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [fetched, setFetched] = useState(false)
-  const [rerun, setRerun] = useState<RerunCounts | null>(null)
+  const [rerun, setRerun] = useState<PendingRun | null>(null)
 
   useEffect(() => {
     Promise.all([fetch(), fetchPapers()]).then(() => setFetched(true))
@@ -44,28 +51,30 @@ export default function AnalysisDetailPage() {
     return <Typography color="text.secondary">Analysis not found.</Typography>
   }
 
-  const canRun = analysis.status !== 'running'
-  const reviewing = analysis.impacts.some((i) => i.state !== 'superseded')
+  const canRunAll = analysis.paper_ids.some((p) => !isLocked(analysis, p))
 
-  const handleRun = async () => {
+  // no paper ids runs every paper; papers already queued or running keep their run and aren't counted
+  const requestRun = async (paperIds: string[], title: string) => {
     setActionError(null)
-    if (reviewing) {
-      const ai = analysis.impacts.filter((i) => i.state === 'active' && i.origin === 'ai')
+    const targets = (paperIds.length ? paperIds : analysis.paper_ids).filter((p) => !isLocked(analysis, p))
+    const impacts = analysis.impacts.filter((i) => targets.includes(i.paper_id) && i.state !== 'superseded')
+    if (impacts.length > 0) {
+      const ai = impacts.filter((i) => i.state === 'active' && i.origin === 'ai')
       const verified = ai.filter((i) => i.verified).length
-      setRerun({ verified, unverified: ai.length - verified })
+      setRerun({ paperIds, title, counts: { verified, unverified: ai.length - verified } })
       return
     }
-    try { await run(id!) } catch (e) { setActionError(String(e)) }
+    try { await run(id!, paperIds) } catch (e) { setActionError(String(e)) }
   }
 
   const handleRerun = async (verified: VerifiedChoice | undefined) => {
     try {
-      await run(id!, verified)
+      await run(id!, rerun!.paperIds, verified)
     } catch (e) {
       // the impacts changed since the dialog opened: show the server's counts and ask again
       const body = e instanceof ApiError ? (e.body as Partial<RerunCounts>) : null
       if (e instanceof ApiError && e.status === 409 && typeof body?.verified === 'number') {
-        setRerun({ verified: body.verified, unverified: body.unverified ?? 0 })
+        setRerun({ ...rerun!, counts: { verified: body.verified, unverified: body.unverified ?? 0 } })
         await refresh(id!)
         throw new Error('The impacts changed since this dialog opened; check the numbers and confirm again.')
       }
@@ -116,15 +125,11 @@ export default function AnalysisDetailPage() {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <Button
             variant="contained"
-            startIcon={
-              analysis.status === 'running'
-                ? <CircularProgress size={16} color="inherit" />
-                : <PlayArrowIcon />
-            }
-            onClick={handleRun}
-            disabled={!canRun || analysis.paper_ids.length === 0}
+            startIcon={<PlayArrowIcon />}
+            onClick={() => requestRun([], 'Run all papers')}
+            disabled={!canRunAll}
           >
-            {analysis.status === 'running' ? 'Running…' : 'Run Analysis'}
+            Run all
           </Button>
           <Tooltip title="Delete analysis">
             <IconButton onClick={handleDelete} color="error">
@@ -139,9 +144,6 @@ export default function AnalysisDetailPage() {
           {actionError}
         </Alert>
       )}
-      {analysis.error && (
-        <Alert severity="error" sx={{ mb: 2 }}>{analysis.error}</Alert>
-      )}
 
       {/* Papers and their impacts */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -150,12 +152,11 @@ export default function AnalysisDetailPage() {
           Add Papers
         </Button>
       </Box>
-      {analysis.status === 'running' && (
-        <Alert severity="info" sx={{ mb: 2 }}>Review is paused while the analysis runs.</Alert>
-      )}
-      <ImpactsPanel analysis={analysis} papers={papers} readOnly={!canRun} />
+      <ImpactsPanel analysis={analysis} papers={papers} onRun={requestRun} />
 
-      {rerun && <RerunDialog counts={rerun} onRun={handleRerun} onClose={() => setRerun(null)} />}
+      {rerun && (
+        <RerunDialog title={rerun.title} counts={rerun.counts} onRun={handleRerun} onClose={() => setRerun(null)} />
+      )}
       <AddPapersDialog
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}

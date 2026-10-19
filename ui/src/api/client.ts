@@ -64,8 +64,15 @@ export const api = {
       req<AnalysisResponse>(`/analyses/${aid}/papers/${pid}`, { method: 'POST' }),
     removePaper: (aid: string, pid: string) =>
       req<AnalysisResponse>(`/analyses/${aid}/papers/${pid}`, { method: 'DELETE' }),
-    run: (id: string, verified?: VerifiedChoice) =>
-      req<AnalysisResponse>(`/analyses/${id}/run${verified ? `?verified=${verified}` : ''}`, { method: 'POST' }),
+    // no paper ids runs every paper of the analysis
+    run: (id: string, paperIds: string[] = [], verified?: VerifiedChoice) => {
+      const params = new URLSearchParams(paperIds.map((p) => ['paper_id', p]))
+      if (verified) params.set('verified', verified)
+      const query = params.toString()
+      return req<AnalysisResponse>(`/analyses/${id}/run${query ? `?${query}` : ''}`, { method: 'POST' })
+    },
+    cancelRun: (id: string, runId: string) =>
+      req<AnalysisResponse>(`/analyses/${id}/runs/${runId}/cancel`, { method: 'POST' }),
     audit: (id: string, impactId?: string) =>
       req<AuditEvent[]>(`/analyses/${id}/audit${impactId ? `?impact_id=${encodeURIComponent(impactId)}` : ''}`),
   },
