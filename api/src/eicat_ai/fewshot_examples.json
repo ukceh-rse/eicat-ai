@@ -1,0 +1,349 @@
+[
+  {
+    "reference": "Linnebjerg J., Hansen D., Bunbury N. & Olesen J. (2010). Diet composition of the invasive Red-whiskered Bulbul (Pycnonotus jocosus) in Mauritius. Journal of Tropical Ecology, 26(3), 347-350. doi:10.1017/S0266467409990617",
+    "species": "Pycnonotus jocosus",
+    "passages": [
+      "Our study confirms that the Red-whiskered Bulbul is predominantly frugivorous in Mauritius, at least during our study season. Almost 99% of all dropping analyses contained plant material, with 92.4% containing seeds and only 7.4% containing invertebrates remains. Diet composition of native plant species: Ficus reflexa, Harungana madagascariensis. The plant material consumed by the Red-whiskered Bulbul in Mauritius consisted mostly of fruits of invasive species. There were numerous other plant species fruiting during the study period. In addition to the plant species already identified in the birds' faeces, 28 species (21 endemic, 5 native and 2 introduced) across all of our study sites bore fruits, which were potentially edible to the bulbul (P. Gangaram, pers. comm.) and, although 6.8% of the seeds were unidentified, it is surprising that we did not find a larger number of seeds from native plant species in the droppings.",
+      "Pycnonotus jocosus is believed to have contributed to population declines of endemic White-eyes (Zosterops spp. Cheke, 1987. Sorensen, 2005).",
+      "The bird is also believed to have facilitate the spread of several introduced plant species, including Ligustrum robustum var. walkeri (Blume), Clidemia hirta (D. Don), Lantana camara (L.) and Cordia interrupta (DC), which, prior to the introduction of the Red-whiskered Bulbul, were quiescent. The plant material consumed by the Red-whiskered Bulbul in Mauritius consisted mostly of fruits of invasive species. This indicates that such fruits constitute a major part of the bulbul's diet and suggests that these birds play an important role in dispersing the seeds of introduced plants in Mauritius. For seeds of two invasive plants, L. robustum an C. hirta, Red-whiskered Bulbul gut-passage has positive effects on germination, demonstrating that the bulbuls were indeed effective dispersers of these species.",
+      "Almost 99% of all dropping analyses contained plant material, with 92.4% containing seeds and only 7.4% containing invertebrates remains."
+    ],
+    "impacts": [
+      {
+        "alien_species": "Pycnonotus jocosus",
+        "mechanism": "Grazing/herbivory/browsing",
+        "category": "DD",
+        "evidence": "Our study confirms that the Red-whiskered Bulbul is predominantly frugivorous in Mauritius, at least during our study season. Almost 99% of all dropping analyses contained plant material, with 92.4% containing seeds and only 7.4% containing invertebrates remains. Diet composition of native plant species: Ficus reflexa, Harungana madagascariensis. The plant material consumed by the Red-whiskered Bulbul in Mauritius consisted mostly of fruits of invasive species. There were numerous other plant species fruiting during the study period. In addition to the plant species already identified in the birds' faeces, 28 species (21 endemic, 5 native and 2 introduced) across all of our study sites bore fruits, which were potentially edible to the bulbul (P. Gangaram, pers. comm.) and, although 6.8% of the seeds were unidentified, it is surprising that we did not find a larger number of seeds from native plant species in the droppings.",
+        "confidence": null,
+        "justification": "",
+        "impacted_species": []
+      },
+      {
+        "alien_species": "Pycnonotus jocosus",
+        "mechanism": "Predation",
+        "category": "MO",
+        "evidence": "Pycnonotus jocosus is believed to have contributed to population declines of endemic White-eyes (Zosterops spp. Cheke, 1987. Sorensen, 2005).",
+        "confidence": "Low",
+        "justification": "No empirical evidence, reference to published literature.",
+        "impacted_species": [
+          "Zosterops spp."
+        ]
+      },
+      {
+        "alien_species": "Pycnonotus jocosus",
+        "mechanism": "Indirect impacts through interactions with other species",
+        "category": "DD",
+        "evidence": "The bird is also believed to have facilitate the spread of several introduced plant species, including Ligustrum robustum var. walkeri (Blume), Clidemia hirta (D. Don), Lantana camara (L.) and Cordia interrupta (DC), which, prior to the introduction of the Red-whiskered Bulbul, were quiescent. The plant material consumed by the Red-whiskered Bulbul in Mauritius consisted mostly of fruits of invasive species. This indicates that such fruits constitute a major part of the bulbul's diet and suggests that these birds play an important role in dispersing the seeds of introduced plants in Mauritius. For seeds of two invasive plants, L. robustum an C. hirta, Red-whiskered Bulbul gut-passage has positive effects on germination, demonstrating that the bulbuls were indeed effective dispersers of these species.",
+        "confidence": null,
+        "justification": "",
+        "impacted_species": []
+      },
+      {
+        "alien_species": "Pycnonotus jocosus",
+        "mechanism": "Predation",
+        "category": "MN",
+        "evidence": "Almost 99% of all dropping analyses contained plant material, with 92.4% containing seeds and only 7.4% containing invertebrates remains.",
+        "confidence": "Medium",
+        "justification": "There is empirical evidence for impact at individual level, but it is difficult to establish the extent and severity of predation impacts to populations of invertebrate species in Mauritius.",
+        "impacted_species": [
+          "Acarina",
+          "Nephila inaurata",
+          "Araneidae",
+          "Coleoptera",
+          "Hymenoptera"
+        ]
+      }
+    ]
+  },
+  {
+    "reference": "Kiesecker JM, Blaustein AR (1998) Effects of introduced bullfrogs and smallmouth bass on microhabitat use, growth, and survival of native red‐legged frogs (Rana aurora). Conservation biology 12 (4): 776-787.",
+    "species": "Lithobates catesbeianus",
+    "passages": [
+      "Their use of microhabitat, however, changed in the presence of both bullfrogs and bass compared to bullfrogs only (Table 5). The mean ranked distance from the shore of R. aurora in the combined treatment was not as high as in the bullfrog only treatment (Fig. 4b,d). This suggests that red-legged frog larvae responded to smallmouth bass, but only after they had moved into deeper water in the presence of bullfrogs. In experiment 3, the habitat shift of R. aurora in the presence of bullfrog larvae likely led to increased predation by smallmouth bass.",
+      "The presence of R. catesbeiana adults and tadpoles significantly interacted to effect R. aurora growth, devel-opment, and survivorship.",
+      "Adult bullfrogs had significant effects on the survival of R. aurora metamorphs (t11 - 4.7, p < 0.001). Survival of metamorphs in the presence and absence of adult bullfrogs was 27.7% and 84.7%, respectively."
+    ],
+    "impacts": [
+      {
+        "alien_species": "Lithobates catesbeianus",
+        "mechanism": "Indirect impacts through interactions with other species",
+        "category": "MN",
+        "evidence": "Their use of microhabitat, however, changed in the presence of both bullfrogs and bass compared to bullfrogs only (Table 5). The mean ranked distance from the shore of R. aurora in the combined treatment was not as high as in the bullfrog only treatment (Fig. 4b,d). This suggests that red-legged frog larvae responded to smallmouth bass, but only after they had moved into deeper water in the presence of bullfrogs. In experiment 3, the habitat shift of R. aurora in the presence of bullfrog larvae likely led to increased predation by smallmouth bass.",
+        "confidence": "Low",
+        "justification": "Interactions between the species were observed in an enclosure study and not in the field.",
+        "impacted_species": [
+          "Rana aurora"
+        ]
+      },
+      {
+        "alien_species": "Lithobates catesbeianus",
+        "mechanism": "Competition",
+        "category": "MN",
+        "evidence": "The presence of R. catesbeiana adults and tadpoles significantly interacted to effect R. aurora growth, devel-opment, and survivorship.",
+        "confidence": "Low",
+        "justification": "Interactions between the species were observed in an enclosure study and not in the field.",
+        "impacted_species": [
+          "Rana aurora"
+        ]
+      },
+      {
+        "alien_species": "Lithobates catesbeianus",
+        "mechanism": "Predation",
+        "category": "MN",
+        "evidence": "Adult bullfrogs had significant effects on the survival of R. aurora metamorphs (t11 - 4.7, p < 0.001). Survival of metamorphs in the presence and absence of adult bullfrogs was 27.7% and 84.7%, respectively.",
+        "confidence": "Low",
+        "justification": "Interaction between the species were determmined in artificial enclosures.",
+        "impacted_species": [
+          "Rana aurora"
+        ]
+      }
+    ]
+  },
+  {
+    "reference": "Bissattini AM, Buono V, Vignoli L (2019) Disentangling the trophic interactions between American bullfrogs and native anurans: Complications resulting from post‐metamorphic ontogenetic niche shifts. Aquatic Conservation: Marine and Freshwater Ecosystems 29 (2): 270-281.",
+    "species": "Lithobates catesbeianus",
+    "passages": [
+      "A higher degree of diet overlap than expected by chance was found between juvenile American bullfrogs and green frogs.",
+      "In adult American bullfrogs (11% with empty stomachs), the alien crayfish P. clarkii represented the most important food item (IRI = 8186.25; FO = 84%) (Table 1), whereas for juvenile American bullfrogs (16% with empty stomachs) the most important food items were isopods (IRI = 1884.64; FO = 42%) (Table 1)."
+    ],
+    "impacts": [
+      {
+        "alien_species": "Lithobates catesbeianus",
+        "mechanism": "Competition",
+        "category": "MC",
+        "evidence": "A higher degree of diet overlap than expected by chance was found between juvenile American bullfrogs and green frogs.",
+        "confidence": "Low",
+        "justification": "Single study area, infer potential competition.",
+        "impacted_species": [
+          "Pelophylax kl. esculentus"
+        ]
+      },
+      {
+        "alien_species": "Lithobates catesbeianus",
+        "mechanism": "Predation",
+        "category": "DD",
+        "evidence": "In adult American bullfrogs (11% with empty stomachs), the alien crayfish P. clarkii represented the most important food item (IRI = 8186.25; FO = 84%) (Table 1), whereas for juvenile American bullfrogs (16% with empty stomachs) the most important food items were isopods (IRI = 1884.64; FO = 42%) (Table 1).",
+        "confidence": "Medium",
+        "justification": "Stomach content and stable isotope analyses were done on frog collected from a single wetland.",
+        "impacted_species": [
+          "Haplotaxida",
+          "Pulmonata",
+          "Araneae",
+          "Isopoda",
+          "Procambarus clarkii",
+          "Julida",
+          "Coleoptera",
+          "Dermaptera",
+          "Diptera",
+          "Hemiptera",
+          "Hymenoptera",
+          "Lepidoptera",
+          "Mecoptera",
+          "Odonata",
+          "Orthoptera",
+          "Actinopterygii",
+          "Pelophylax kl. esculentus"
+        ]
+      }
+    ]
+  },
+  {
+    "reference": "Guillaume, G. et al. (2014). Effects of mute swans on wetlands: A synthesis. Hydrobiologia, 723(1), pp.195–204.",
+    "species": "Cygnus olor",
+    "passages": [
+      "Tatu et al. (2006) conversely found a deleterious impact of mute swans on aquatic plant cover, height and shoot density in Chesapeake Bay, with the effect being more evident when swan flocks rather than just paired birds were present. In the grazed area, mean percent cover of aquatic plants was 79% lower,mean shoot density was 76% lower and canopy height was 40% lower than in 2-year exclosure treatments.",
+      "Wildfowl can behave territorially and exclude other waterbirds from their nesting sites (Owen & Black, 1990), but the extent and intensity of this territorial behaviour may vary between species. Beside conspecifics, mute swan breeding pairs can also behave aggressively towards other waterbird species, and even towards humans  e.g.  in Connecticut (Conover& Kania 1994).",
+      "In mid-continental American wetlands, an experimental studyfailed to demonstrate mute swan effects on above ground plant biomass, but did detect a significant reduction in below-ground biomass (mean belowground biomass in exclosures: 52.0 g/m2, SE = 6.0,in grazed areas 34.4 g/m2, SE = 4.0, Stafford et al.,2012)."
+    ],
+    "impacts": [
+      {
+        "alien_species": "Cygnus olor",
+        "mechanism": "Grazing/herbivory/browsing",
+        "category": "MO",
+        "evidence": "Tatu et al. (2006) conversely found a deleterious impact of mute swans on aquatic plant cover, height and shoot density in Chesapeake Bay, with the effect being more evident when swan flocks rather than just paired birds were present. In the grazed area, mean percent cover of aquatic plants was 79% lower,mean shoot density was 76% lower and canopy height was 40% lower than in 2-year exclosure treatments.",
+        "confidence": "High",
+        "justification": "There is observational evidence to support the assessment.",
+        "impacted_species": []
+      },
+      {
+        "alien_species": "Cygnus olor",
+        "mechanism": "Competition",
+        "category": "MC",
+        "evidence": "Wildfowl can behave territorially and exclude other waterbirds from their nesting sites (Owen & Black, 1990), but the extent and intensity of this territorial behaviour may vary between species. Beside conspecifics, mute swan breeding pairs can also behave aggressively towards other waterbird species, and even towards humans  e.g.  in Connecticut (Conover& Kania 1994).",
+        "confidence": "Low",
+        "justification": "There is no observational evidence to support the assessment.",
+        "impacted_species": []
+      },
+      {
+        "alien_species": "Cygnus olor",
+        "mechanism": "Grazing/herbivory/browsing",
+        "category": "MO",
+        "evidence": "In mid-continental American wetlands, an experimental studyfailed to demonstrate mute swan effects on above ground plant biomass, but did detect a significant reduction in below-ground biomass (mean belowground biomass in exclosures: 52.0 g/m2, SE = 6.0,in grazed areas 34.4 g/m2, SE = 4.0, Stafford et al.,2012).",
+        "confidence": "High",
+        "justification": "There is observational evidence to support the assessment.",
+        "impacted_species": []
+      }
+    ]
+  },
+  {
+    "reference": "Markula, A., Hannan-Jones, M. & Csurhes, S., (2009). Pest animal risk assessment: Indian myna (Acridotheres tristis). Biosecurity Queensland. Queensland Primary Industries and Fisheries.",
+    "species": "Acridotheres tristis",
+    "passages": [
+      "In Tahiti, Indian mynas have adverse effects on breeding success of the critically endangered Tahiti flycatcher (Pomarea nigra), possibly due to nest predation and also territorial aggression (Blanvillain et al. 2003).",
+      "In Fiji, Indian mynas compete with native seabirds for food, carry owl flies, lice, threadworms and roundworms that may affect native birds, predate upon eggs and young of terns (Sterna spp.) and noddies (Anous spp.).",
+      "In Fiji, Indian mynas compete with native seabirds for food, carry owl flies, lice, threadworms and roundworms that may affect native birds, predate upon eggs and young of terns (Sterna spp.) and noddies (Anous spp.)",
+      "In Hawaii, Indian mynas disperse invasive plants such as Lantana camara (ISSG, 2006) and carry avian malaria (Caughley & Sinclair, 1994).",
+      "In Israel, Indian mynas have shown aggressive behaviour towards Syrian woodpeckers (Dendrocopos syriacus) (Holzapfel et al. 2006).",
+      "In the Seychelles, Indian mynas have adverse effects on the breeding success of the endangered magpie robin (Copsychus sechellarum) (Komdeur, 1996)."
+    ],
+    "impacts": [
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Predation",
+        "category": "MN",
+        "evidence": "In Tahiti, Indian mynas have adverse effects on breeding success of the critically endangered Tahiti flycatcher (Pomarea nigra), possibly due to nest predation and also territorial aggression (Blanvillain et al. 2003).",
+        "confidence": "Low",
+        "justification": "Whilst there is some observational evidence, it is difficult to establish the extent and severity of predation impacts. The impact severity could be higher.",
+        "impacted_species": [
+          "Pomarea nigra"
+        ]
+      },
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Predation",
+        "category": "MN",
+        "evidence": "In Fiji, Indian mynas compete with native seabirds for food, carry owl flies, lice, threadworms and roundworms that may affect native birds, predate upon eggs and young of terns (Sterna spp.) and noddies (Anous spp.).",
+        "confidence": "Low",
+        "justification": "Whilst there is some observational evidence, it is difficult to establish the extent and severity of predation impacts. The impact severity could be higher.",
+        "impacted_species": [
+          "Sterna spp.",
+          "Anous spp."
+        ]
+      },
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Transmission of diseases to native species",
+        "category": "DD",
+        "evidence": "In Fiji, Indian mynas compete with native seabirds for food, carry owl flies, lice, threadworms and roundworms that may affect native birds, predate upon eggs and young of terns (Sterna spp.) and noddies (Anous spp.)",
+        "confidence": null,
+        "justification": "",
+        "impacted_species": []
+      },
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Indirect impacts through interactions with other species",
+        "category": "DD",
+        "evidence": "In Hawaii, Indian mynas disperse invasive plants such as Lantana camara (ISSG, 2006) and carry avian malaria (Caughley & Sinclair, 1994).",
+        "confidence": null,
+        "justification": "",
+        "impacted_species": []
+      },
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Transmission of diseases to native species",
+        "category": "MN",
+        "evidence": "In Hawaii, Indian mynas disperse invasive plants such as Lantana camara (ISSG, 2006) and carry avian malaria (Caughley & Sinclair, 1994).",
+        "confidence": null,
+        "justification": "",
+        "impacted_species": []
+      },
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Competition",
+        "category": "MC",
+        "evidence": "In Israel, Indian mynas have shown aggressive behaviour towards Syrian woodpeckers (Dendrocopos syriacus) (Holzapfel et al. 2006).",
+        "confidence": "Low",
+        "justification": "Whilst there is some observational evidence, it is difficult to establish the extent and severity of competition impacts.",
+        "impacted_species": [
+          "Dendrocopos syriacus"
+        ]
+      },
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Competition",
+        "category": "MN",
+        "evidence": "In the Seychelles, Indian mynas have adverse effects on the breeding success of the endangered magpie robin (Copsychus sechellarum) (Komdeur, 1996).",
+        "confidence": "Low",
+        "justification": "Whilst there is some observational evidence, it is difficult to establish the extent and severity of competition impacts.",
+        "impacted_species": [
+          "Copsychus sechellarum"
+        ]
+      },
+      {
+        "alien_species": "Acridotheres tristis",
+        "mechanism": "Competition",
+        "category": "MN",
+        "evidence": "In Tahiti, Indian mynas have adverse effects on breeding success of the critically endangered Tahiti flycatcher (Pomarea nigra), possibly due to nest predation and also territorial aggression (Blanvillain et al. 2003).",
+        "confidence": "Low",
+        "justification": "Whilst there is some observational evidence, it is difficult to establish the extent and severity of competition impacts.",
+        "impacted_species": [
+          "Pomarea nigra"
+        ]
+      }
+    ]
+  },
+  {
+    "reference": "Faye, A., Krasova-Wade, T., Thiao, M., Thioulouse, J., Neyra, M., Prin, Y., Galiana, A., Ndoye, I., Dreyfus, B. and Duponnois, R., 2009. Controlled ectomycorrhization of an exotic legume tree species Acacia holosericea affects the structure of root nodule bacteria community and their symbiotic effectiveness on Faidherbia albida, a native Sahelian Acacia. Soil Biology and Biochemistry, 41(6), pp.1245-1252.",
+    "species": "Acacia holosericea",
+    "passages": [
+      "Results clearly showed that A. holosericea modified the structure of Bradyrhizobia populations and their effectiveness on F. albida growth. This negative effect was counterbalanced by the introduction of an ectomycorrhizal fungus, P. albus, on A. holosericea root systems.",
+      "After 7 year’s plantation, the diversity and the symbiotic properties of Bradyrhizobia isolated from the plantation soil or from the surrounding area (Faidherbia albida (Del.) a. Chev. parkland) and able to nodulate F. albida, a native Sahelian Acacia species, have been studied. Results clearly showed that A. holosericea modified the structure of Bradyrhizobia populations and their effectiveness on F. albida growth. This negative effect was counterbalanced by the introduction of an ectomycorrhizal fungus, P. albus, on A. holosericea root systems."
+    ],
+    "impacts": [
+      {
+        "alien_species": "Acacia holosericea",
+        "mechanism": "Indirect impacts through interactions with other species",
+        "category": "MN",
+        "evidence": "Results clearly showed that A. holosericea modified the structure of Bradyrhizobia populations and their effectiveness on F. albida growth. This negative effect was counterbalanced by the introduction of an ectomycorrhizal fungus, P. albus, on A. holosericea root systems.",
+        "confidence": "Low",
+        "justification": "impact could be higher, but not studied. Looked at soils from different areas: alien plantation and adjacent native vegetation",
+        "impacted_species": [
+          "Bradyrhizobium",
+          "Faidherbia albida"
+        ]
+      },
+      {
+        "alien_species": "Acacia holosericea",
+        "mechanism": "Indirect impacts through interactions with other species",
+        "category": "MN",
+        "evidence": "After 7 year’s plantation, the diversity and the symbiotic properties of Bradyrhizobia isolated from the plantation soil or from the surrounding area (Faidherbia albida (Del.) a. Chev. parkland) and able to nodulate F. albida, a native Sahelian Acacia species, have been studied. Results clearly showed that A. holosericea modified the structure of Bradyrhizobia populations and their effectiveness on F. albida growth. This negative effect was counterbalanced by the introduction of an ectomycorrhizal fungus, P. albus, on A. holosericea root systems.",
+        "confidence": "Low",
+        "justification": "Impact could be higher, but not studied. Looked at soils from different areas: alien plantation and adjacent native vegetation",
+        "impacted_species": [
+          "Bradyrhizobium",
+          "Faidherbia albida"
+        ]
+      }
+    ]
+  },
+  {
+    "reference": "CABI.  (2009). Invasive species compendium. Datasheet report for Anser indicus (bar-headed goose). Available at: https://www.cabi.org/isc/datasheet/94089#toimpactEnvironmental",
+    "species": "Anser indicus",
+    "passages": [
+      "Introduced A. indicus interbreed readily with other geese, including other introduced species such as the swan goose A. cygnoides but, as far as is known, do not produce fertile hybrids.",
+      "Along with other introduced wildfowl, A. indicus add to the trampling and fouling of amenity grasslands and to the eutrophication of park lakes."
+    ],
+    "impacts": [
+      {
+        "alien_species": "Anser indicus",
+        "mechanism": "Hybridisation",
+        "category": "MN",
+        "evidence": "Introduced A. indicus interbreed readily with other geese, including other introduced species such as the swan goose A. cygnoides but, as far as is known, do not produce fertile hybrids.",
+        "confidence": "Low",
+        "justification": "The evidence is anecdotal.",
+        "impacted_species": [
+          "Anser cygnoides"
+        ]
+      },
+      {
+        "alien_species": "Anser indicus",
+        "mechanism": "Chemical Impact on ecosystem",
+        "category": "MC",
+        "evidence": "Along with other introduced wildfowl, A. indicus add to the trampling and fouling of amenity grasslands and to the eutrophication of park lakes.",
+        "confidence": "Low",
+        "justification": "The evidence is anecdotal and no assessment of severity is provided. Impacts could be more severe than MC.",
+        "impacted_species": []
+      }
+    ]
+  }
+]

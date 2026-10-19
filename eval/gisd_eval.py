@@ -42,6 +42,7 @@ from gisd_score import score  # noqa: E402
 DEFAULT_DATA_DIR = REPO / "gisd_data"
 DEFAULT_RUNS_DIR = REPO / "eval" / "runs"
 DEFAULT_API_URL = "http://localhost:18000"
+FEWSHOT_EXAMPLES = REPO / "api" / "src" / "eicat_ai" / "fewshot_examples.json"  # built by build_fewshot.py
 COMPOSE = [
     "docker", "compose", "-p", "eicat-gisd-eval",
     "-f", str(REPO / "docker-compose.yml"),
@@ -73,6 +74,16 @@ def fetch(data_dir: Path, force: bool) -> None:
 # ── cases ─────────────────────────────────────────────────────────────────────
 
 
+GOLD_IMPACT_KEY = ["Impact mechanism", "EICAT Category", "Evidence for EICAT impact category", "Impacted native species"]
+
+
+def merge_countries(rows: pd.DataFrame) -> pd.DataFrame:
+    """GISD repeats an impact once per country of impact; the app has no country field, so merge those rows."""
+    return rows.groupby(GOLD_IMPACT_KEY, dropna=False, sort=False, as_index=False).agg(
+        lambda s: ", ".join(dict.fromkeys(s.dropna().astype(str))) if s.name == "Countries of impact" else s.iloc[0]
+    )[rows.columns]
+
+
 def load_cases(data_dir: Path, manifest_path: Path, gisd_path: Path) -> tuple[list[dict], pd.DataFrame]:
     """Pair each PDF with its GISD reference, giving one case per (PDF, species)."""
     refs_by_file: dict[str, list[str]] = {}
@@ -80,6 +91,8 @@ def load_cases(data_dir: Path, manifest_path: Path, gisd_path: Path) -> tuple[li
         refs_by_file.setdefault(entry["file"], []).append(entry["reference"])
     gisd = pd.read_csv(gisd_path)
     gisd["Reference"] = gisd["Reference"].str.strip()
+    # references shown to the extraction model as few-shot examples must never be scored
+    fewshot = {e["reference"] for e in json.loads(FEWSHOT_EXAMPLES.read_text())} if FEWSHOT_EXAMPLES.exists() else set()
 
     cases, gold = [], []
     for pdf in sorted(p for p in data_dir.iterdir() if p.suffix.lower() == ".pdf"):
@@ -88,6 +101,9 @@ def load_cases(data_dir: Path, manifest_path: Path, gisd_path: Path) -> tuple[li
             reason = "not in the library" if not refs else f"matches {len(refs)} references in the library"
             print(f"  ! skipping {pdf.name}: {reason}")
             continue
+        if refs[0] in fewshot:
+            print(f"  ! skipping {pdf.name}: its reference is a few-shot example in {FEWSHOT_EXAMPLES.name}")
+            continue
         rows = gisd[gisd["Reference"] == refs[0]]
         if rows.empty:
             print(f"  ! skipping {pdf.name}: reference has no GISD EICAT rows in {gisd_path.name}")
@@ -95,7 +111,7 @@ def load_cases(data_dir: Path, manifest_path: Path, gisd_path: Path) -> tuple[li
         for species, group in rows.groupby("Species"):
             case_id = f"{pdf.stem}__{re.sub(r'\W+', '_', species)}"
             cases.append({"case_id": case_id, "pdf": pdf.name, "reference": refs[0], "species": species})
-            gold.append(group.assign(case_id=case_id))
+            gold.append(merge_countries(group).assign(case_id=case_id))
     return cases, pd.concat(gold) if gold else pd.DataFrame()
 
 

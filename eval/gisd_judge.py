@@ -19,8 +19,13 @@ from pathlib import Path
 import pandas as pd
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, ModelSettings
+from pydantic_ai.models import Model
+from pydantic_ai.models.bedrock import BedrockConverseModel
+from pydantic_ai.providers.bedrock import BedrockProvider
 
-DEFAULT_MODEL = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
+# GPT-5.5: a different model family from the extraction models, and on a dev re-judge it found matches Claude 3.7
+# Sonnet missed (same impact, different passages) without pairing unrelated impacts
+DEFAULT_MODEL = "bedrock:global.openai.gpt-5.5"
 
 SYSTEM_PROMPT = """You compare two independent EICAT impact assessments of the same paper and alien species.
 GOLD impacts were recorded by a human expert; EXTRACTED impacts by an automated system. Each impact is
@@ -56,9 +61,15 @@ def describe(tag: str, evidence, species) -> str:
     return f"[{tag}] Impacted taxa: {species}\nEvidence: {evidence if isinstance(evidence, str) else ''}"
 
 
+def gold_evidence(row: pd.Series):
+    """The GISD evidence passage; a few rows leave it empty, so fall back to the assessor's confidence justification."""
+    evidence = row["Evidence for EICAT impact category"]
+    return evidence if isinstance(evidence, str) and evidence.strip() else row.get("Justification for confidence rating")
+
+
 def prompt(record: dict, gold: pd.DataFrame) -> str:
     gold_text = "\n\n".join(
-        describe(f"G{i}", r["Evidence for EICAT impact category"], r["Impacted native species"]) for i, r in gold.iterrows()
+        describe(f"G{i}", gold_evidence(r), r["Impacted native species"]) for i, r in gold.iterrows()
     )
     ext_text = "\n\n".join(
         describe(f"E{i}", imp["evidence"], "; ".join(imp["impacted_species"])) for i, imp in enumerate(record["impacts"])
@@ -93,8 +104,29 @@ async def judge_case(agent: Agent, sem: asyncio.Semaphore, record: dict, gold: p
     print(f"  {record['case_id']}: {len(pairs)} pairs ({len(gold)} gold, {len(record['impacts'])} extracted)")
 
 
+# Newer Bedrock models reject `temperature`; GPT-5.x is flagged as not served by the Converse API (it is, via an
+# inference profile) and Claude Sonnet 5.5 rejects the forced tool_choice pydantic-ai sends for structured output.
+NO_TEMPERATURE = ("claude-haiku-5-5", "claude-sonnet-5-5", "openai.gpt-5")
+NO_FORCED_TOOL = ("claude-sonnet-5-5",)
+
+
+def judge_model(model: str) -> tuple[Model | str, ModelSettings]:
+    settings = ModelSettings(max_tokens=4000)
+    if not any(m in model for m in NO_TEMPERATURE):
+        settings["temperature"] = 0.0
+    name = model.removeprefix("bedrock:")
+    if not model.startswith("bedrock:") or not any(m in name for m in ("openai.gpt-5", *NO_FORCED_TOOL)):
+        return model, settings
+    provider = BedrockProvider()
+    profile = {**provider.model_profile(name), "bedrock_supported_on_converse": True}
+    if any(m in name for m in NO_FORCED_TOOL):
+        profile["bedrock_supports_tool_choice"] = False
+    return BedrockConverseModel(name, provider=provider, profile=profile), settings
+
+
 async def judge_all(todo: list[tuple[dict, pd.DataFrame, Path]], model: str, concurrency: int) -> None:
-    agent = Agent(model, output_type=Pairing, system_prompt=SYSTEM_PROMPT, model_settings=ModelSettings(temperature=0.0, max_tokens=4000))
+    llm, settings = judge_model(model)
+    agent = Agent(llm, output_type=Pairing, system_prompt=SYSTEM_PROMPT, model_settings=settings)
     sem = asyncio.Semaphore(concurrency)
     results = await asyncio.gather(*(judge_case(agent, sem, r, g, out, model) for r, g, out in todo), return_exceptions=True)
     for (record, _, _), result in zip(todo, results):

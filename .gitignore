@@ -6,3 +6,5 @@ eval/runs/
 /.quarto/
 **/*.quarto_ipynb
 __pycache__/
+eval/figure*
+eval/fonts

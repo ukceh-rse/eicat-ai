@@ -1,7 +1,9 @@
+import json
 from dataclasses import replace
+from pathlib import Path
 from typing import List
 
-from pydantic_ai import Agent, ModelSettings, RunContext
+from pydantic_ai import Agent, ModelSettings, PromptedOutput, RunContext
 from pydantic_ai.models import Model
 from pydantic_ai.models.bedrock import BedrockConverseModel
 from pydantic_ai.providers.bedrock import BedrockProvider
@@ -65,12 +67,37 @@ def paper_agent(model_name: str) -> Agent[None, Paper]:
     return agent
 
 
+def _render_examples(path: Path) -> str:
+    """Few-shot examples from GISD expert assessments (built by eval/build_fewshot.py), as plain text:
+    Nova models produced invalid tool calls more often with JSON examples in the prompt."""
+    out = []
+    for n, e in enumerate(json.loads(path.read_text()), 1):
+        ids = {p: f"P{k}" for k, p in enumerate(e["passages"], 1)}
+        passages = "\n".join(f"[{ids[p]}] {p}" for p in e["passages"])
+        records = "\n".join(
+            f"- {i['mechanism']} | {i['category']} | impacted: {', '.join(i['impacted_species']) or 'not stated'}"
+            f" | evidence: {ids.get(i['evidence'], '-')}"
+            for i in e["impacts"]
+        )
+        out.append(
+            f"### Example {n}: {e['species']}\nPassages:\n{passages}\n\n"
+            f"Expert records (mechanism | category | impacted taxa | evidence passage):\n{records}"
+        )
+    return "\n\n".join(out)
+
+
+FEWSHOT_EXAMPLES = _render_examples(Path(__file__).parent / "fewshot_examples.json")
+
+
 # Newer Bedrock models reject request options older ones accept: `temperature` (Claude 5.5, GPT-5.x)
 # and a forced tool_choice (Claude Sonnet 5.5), which pydantic-ai sends for tool output. For the latter
 # tool output is kept (prompted JSON output extracted noticeably fewer impacts) but tool_choice is left
 # unset, so the model chooses to call the output tool and pydantic-ai retries if it replies with text.
 NO_TEMPERATURE = ("claude-haiku-5-5", "claude-sonnet-5-5", "openai.gpt-5")
 NO_FORCED_TOOL = ("claude-sonnet-5-5",)
+# Nova often fails long structured outputs as tool calls ("Model produced invalid sequence as part of ToolUse"),
+# even on retry; prompted JSON output fails far less often for it.
+PROMPTED_OUTPUT = ("amazon.nova",)
 
 
 def _model(model_name: str) -> Model | str:
@@ -88,7 +115,7 @@ def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
         settings["temperature"] = 0.0
     agent: Agent[Paper, List[Impact]] = Agent[Paper, List[Impact]](
         model=_model(model_name),
-        output_type=List[Impact],
+        output_type=PromptedOutput(List[Impact]) if any(m in model_name for m in PROMPTED_OUTPUT) else List[Impact],
         output_retries=5,
         model_settings=settings,
     )
@@ -96,19 +123,27 @@ def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
     @agent.system_prompt
     async def get_system_prompt(ctx: RunContext[Paper]) -> str:
         return f"""
+
         ## EICAT IMPACT EXTRACTION AGENT
 
-        You are an expert extraction agent applying the IUCN Environmental Impact Classification for Alien Taxa (EICAT) standard to academic literature. Read the paper below and return structured Impact records for every distinct impact mechanism documented.
+        You are an expert extraction agent applying the IUCN Environmental Impact Classification for Alien Taxa (EICAT) standard to academic literature. Read the paper below and return structured Impact records for every impact it documents, suggests or rules out.
 
         ---
         ## EXTRACTION RULES
 
-        1. Extract only impacts **observed in the alien (introduced) range**. Discard native-range studies, modelled projections, or hypothetical impacts not grounded in field or experimental evidence from the alien range.
-        2. An impact must represent an **actual observed or strongly inferred change** in a native taxon — not a concern, hypothesis, or prediction.
-        3. **Consider all evidence** that could constitute an EICAT impact across any of the 12 mechanisms, not only impacts explicitly flagged as such by the authors.
-        4. Ignore purely socio-economic impacts. Only environmental impacts affecting native biota are in scope.
-        5. **Precautionary principle**: When it is unclear whether the alien taxon or another stressor is the primary driver of an observed change in native biota, assume the alien taxon is the driver for classification purposes. Record your uncertainty in confidence and justification.
-        6. One Impact record per distinct mechanism. If the same mechanism operates at different magnitudes across different native taxa, record the most severe.
+        Your records are compared with those of expert EICAT assessors, who record **every** impact a source documents, suggests or rules out, including weak and indirect evidence. A missed impact is a worse error than an extra one: when in doubt, record it (with the appropriate category and Low confidence) rather than leave it out.
+
+        1. **Scope.** Record impacts in the alien (introduced) range. This includes impacts the paper reports from cited studies, reviews or other regions where the species is alien, and statements in risk assessments or species accounts. Discard only native-range effects and purely modelled projections.
+        2. **Record suggested and ruled-out impacts too.**
+           - An impact the authors suggest, hypothesise, describe as possible or potential, or report as anecdote, but without a measured effect on native individuals, is recorded with category **DD**.
+           - An impact that was looked for and not found (no significant effect, no difference between invaded and uninvaded sites, no evidence of the mechanism) is recorded with category **MC**.
+        3. **One record per mechanism per impacted native taxon (or group).** Do not merge different mechanisms or different native taxa into one record. The same passage can support several records: e.g. an alien that both eats a native species and competes with it for food gives one Predation and one Competition record.
+        4. **Diet is evidence.** If the alien is reported eating native animals, record Predation (at least MN when native individuals are killed or eaten). If it eats native plants, fruit, seeds or nectar, record Grazing/herbivory/browsing (DD unless harm to the plants is shown). Prey identified only to broad groups (insects, lizards) still counts.
+        5. **Indirect interactions.** Seed dispersal or pollination of other alien plants, apparent competition, facilitation of other invaders, and hosting pathogens or parasites that could reach natives are impacts too (Indirect impacts, or Transmission of diseases when the alien hosts a pathogen of natives).
+        6. **Only native taxa can be impacted.** Do not list the alien itself or other alien species as impacted taxa (except as intermediaries in an indirect impact on natives).
+        7. **Consider all 12 mechanisms** for every interaction between the alien and native biota the paper mentions, not only impacts flagged as such by the authors. Ignore purely socio-economic impacts.
+        8. **Precautionary principle**: when it is unclear whether the alien taxon or another stressor drives an observed change in native biota, assume the alien is the driver and record the uncertainty in confidence and justification.
+        9. An empty list is correct only when the paper says nothing at all about any interaction between the alien and native species or ecosystems.
 
         ---
         ## EICAT IMPACT MECHANISMS (use exactly one per Impact record)
@@ -138,11 +173,12 @@ def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
         | **MO** (Moderate)| Evidence of a **decline in population size** of ≥1 native taxon, but no local extinction documented. |
         | **MN** (Minor)   | Evidence of **reduced individual performance** (growth, reproduction, survival, immunocompetence, etc.) in native taxa, but **no decline in population sizes**. |
         | **MC** (Minimal Concern) | Impact has been actively studied; only **negligible effects** on individual performance detected; no population-level change. Use only when absence of effect is supported by evidence, not merely by absence of study. |
-        | **DD** (Data Deficient)  | Alien populations are known to exist in the wild but current evidence is **insufficient** to assign any of the above categories. Also use when mechanism is documented but impact magnitude cannot be determined. |
+        | **DD** (Data Deficient)  | The impact is suggested, hypothesised, anecdotal or inferred, but **no effect on native individuals was observed or measured**. |
 
         **Key distinctions to apply carefully:**
-        - MC vs DD: MC requires a study that found negligible effects. DD means populations exist but data are lacking.
-        - MN vs MO: MN = individual performance down, population size stable. MO = population size down.
+        - MC vs DD: MC requires that the effect was looked for and found negligible or absent. DD means the impact is suggested but its effect is unknown.
+        - DD vs MN: a mechanism observed acting on native individuals (individuals eaten, killed, hybrids produced, nests usurped, growth reduced) is at least MN.
+        - MN vs MO: MN = individual performance down, population size stable. MO = population size, abundance or density down. Effects measured only on individuals (growth, survival in experiments) are MN however large.
         - MO vs MR: MR requires documented local extinction (not merely decline), but reversible.
         - MR vs MV: Identical threshold (local extinction) but MV is naturally irreversible.
 
@@ -161,7 +197,7 @@ def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
         | **Low**    | Indirect inference only; heavily confounded; single anecdote or incidental observation; evidence extrapolated from a different spatial/temporal scale; or study design insufficient to establish causation. |
 
         ---
-        ## OUTPUT FIELDS (one Impact object per distinct mechanism)
+        ## OUTPUT FIELDS (one Impact object per mechanism and impacted native taxon)
 
         - `alien_species` — taxon name as stated in the paper
         - `mechanism` — exactly one of the 12 mechanisms listed above
@@ -172,7 +208,16 @@ def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
         - `justification` — brief explanation of the category and confidence assignments
         - `impacted_species` — list of native taxa affected (scientific names preferred; use text verbatim if no scientific name given; empty list if none stated)
 
-        If no valid EICAT impact is present in this paper, return an empty list [].
+        If the paper says nothing about any interaction between the alien and native species or ecosystems, return an empty list [].
+
+        ---
+        ## WORKED EXAMPLES
+
+        The following are expert EICAT records from GISD for other papers, showing how assessors record impacts: suggested impacts as DD, null results as MC, diet as Predation or Grazing, one record per mechanism and native taxon (the same passage often gives several records). They are not from the paper below.
+
+        {FEWSHOT_EXAMPLES}
+
+        ---
 
         ===== START OF PAPER =====
         {ctx.deps.content}

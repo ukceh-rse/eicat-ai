@@ -232,7 +232,7 @@ extraction is newer; pairs that reuse or invent an id are dropped with a `·` no
 
 | Option (`judge`, `run`) | Default | Description |
 |--------|---------|-------------|
-| `--judge-model` | `bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0` | Pydantic AI model id for the judge. |
+| `--judge-model` | `bedrock:global.openai.gpt-5.5` | Pydantic AI model id for the judge. |
 | `--judge-concurrency` | `4` | Cases judged in parallel. |
 | `--force-judge` | off | Re-judge cases that already have a judgement. |
 
@@ -293,8 +293,9 @@ records per analysis, priced at rough Bedrock list prices kept in the script (`P
 - GISD sometimes spells one reference several ways (`lever_2005_a`/`_b`/`_c`), each its own
   library entry, so save the PDF under every name you want evaluated.
 - GISD gives no vernacular names, so analyses use the scientific name only.
-- The judge is an LLM and from the same model family as the default extraction model, so it may
-  favour the extractor's interpretation; spot-check `pairs.csv` (and unpaired rows in `impacts.csv`).
+- The judge is an LLM (by default GPT-5.5, a different family from the Claude and Nova extraction models, to
+  limit self-preference); spot-check `pairs.csv` (and unpaired rows in `impacts.csv`). Gold rows that share
+  one evidence passage but differ in mechanism cannot be told apart by the judge, which sees no labels.
 - GISD records one assessor's reading of a paper and often a subset of its impacts, so extracted
   impacts GISD did not record count as false positives even when they are genuine; read precision
   with that in mind.
