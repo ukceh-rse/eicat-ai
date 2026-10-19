@@ -1,19 +1,60 @@
 # Evaluation
 
-Tooling for the IAA study described in [`site/eval-protocol.qmd`](../site/eval-protocol.qmd),
-plus an end-to-end evaluation of the application against GISD
-([`gisd_eval.py`](#gisd_evalpy--end-to-end-evaluation-against-gisd), at the end of this file).
+Tooling for the inter-annotator agreement (IAA) study described in
+[`site/eval-protocol.qmd`](../site/eval-protocol.qmd), an end-to-end evaluation of the application
+against GISD, and the figures used to present both.
 
-Dependencies are managed by [`pyproject.toml`](pyproject.toml); run scripts with
-`uv run --project eval eval/<script>.py` from the repo root, no separate install step.
+Dependencies are managed by [`pyproject.toml`](pyproject.toml); run scripts from the repo root with
+`uv run --project eval eval/<script>.py`, no separate install step.
 
-Annotator files in `--input` (`eval-data/batch_a` by default) are matched by filename stem,
-one file per annotator, `.xlsx` or `.csv`. Every script anonymizes that stem to an id like
-`A1`, `A2`, ... via [`anonymize.py`](anonymize.py) before it touches any output, so no file
-this pipeline writes (metrics, figures, `iaa_report.md`) ever carries an annotator's initials.
-The real stem-to-id mapping lives in `annotators.json`, gitignored, and grows additively: an
-id is assigned the first time its stem is seen and never changes, so ids stay stable across
-scripts and across re-runs even as new annotators are added.
+## Layout
+
+| | |
+|---|---|
+| [`eicat_eval/`](#the-eicat_eval-library) | Shared library: EICAT vocabulary, data loaders, agreement statistics, brand styling. |
+| **GISD evaluation** | |
+| [`gisd_eval.py`](#gisd_evalpy--end-to-end-evaluation-against-gisd) | Pipeline entry point: `fetch`, `extract`, `judge`, `score`, `report`, `run`. |
+| `gisd_judge.py`, `gisd_score.py`, `gisd_report.py` | The `judge`, `score` and `report` stages, importable on their own. |
+| [`gisd_compare.py`](#comparing-extraction-models) | Accuracy and cost table across scored runs. |
+| [`build_fewshot.py`](#build_fewshotpy--few-shot-examples) | Builds the extraction prompt's few-shot examples from GISD. |
+| **Inter-annotator agreement** | |
+| [`align_impacts.py`](#align_impactspy--impact-alignment-baseline) | Clusters annotators' evidence quotes into shared impacts (LLM), then scores detection agreement. |
+| [`category_agreement.py`](#category_agreementpy--maximum-category-per-paper) | Agreement on each paper's most severe category. |
+| [`report_iaa.py`](#report_iaapy--figures-and-interpretation) | Report figures and a written summary of the two above. |
+| [`iaa_experience.py`](#iaa_experiencepy--agreement-by-eicat-experience) | Agreement split by EICAT experience, with brand-styled figures. |
+| **Presentation figures** | |
+| [`present_*.py`](#presentation-figures) | Brand-styled 16:9 figures for talks. |
+| [`tests/`](#tests) | Tests for the library. |
+
+## The `eicat_eval` library
+
+Everything more than one script needs lives in [`eicat_eval/`](eicat_eval/), so no script imports
+another script's internals. Scripts import it as a sibling package (`from eicat_eval import eicat`);
+each module's docstring documents it in full.
+
+| Module | Contents |
+|---|---|
+| [`paths`](eicat_eval/paths.py) | Absolute repository locations and every script's default inputs and outputs. |
+| [`eicat`](eicat_eval/eicat.py) | Category codes, names and severity order (`by_severity`), mechanism display labels. |
+| [`gisd`](eicat_eval/gisd.py) | `read_gisd`, `merge_countries`, `gold_impacts`, `canonical_mechanism`; the one bridge into `utils/`. |
+| [`annotators`](eicat_eval/annotators.py) | Anonymisation, `EXCLUDED` annotators, sheet loaders (`load_evidence`, `load_categories`), `max_category_matrix`, `drop_annotators`, `load_experience`. |
+| [`agreement`](eicat_eval/agreement.py) | `presence_matrix`, `pairwise_jaccard`, `krippendorff_alpha`, `landis_koch`, `exact_permutation_p`. |
+| [`runs`](eicat_eval/runs.py) | Reading scored runs: `read_metrics`, `read_cases`, `class_accuracy`. |
+| [`style`](eicat_eval/style.py) | OneSTOP brand palette, fonts, `slide` layout and `save`; `apply(bare=True)` for slide decks. |
+| [`charts`](eicat_eval/charts.py) | Shared chart components: `radar_axes`, `max_category_confusion`. |
+
+### Annotator anonymity and exclusions
+
+Annotator files in `--input` (`eval-data/iaa/batch_a` by default) are matched by filename stem,
+one file per annotator, `.xlsx` or `.csv`. Every loader in `eicat_eval.annotators` anonymizes that
+stem to an id like `A1`, `A2`, ... before it touches any output, so no file this pipeline writes
+(metrics, figures, `iaa_report.md`) ever carries an annotator's initials. The real stem-to-id
+mapping lives in `annotators.json`, gitignored, and grows additively: an id is assigned the first
+time its stem is seen and never changes, so ids stay stable across scripts and re-runs.
+
+Annotators listed in `EXCLUDED` in [`eicat_eval/annotators.py`](eicat_eval/annotators.py) (currently
+A7, an outlier that overlapped with almost no other annotator on which impacts are present) are
+dropped as their sheets are read, so they are left out of every IAA metric, figure and report.
 
 ## `align_impacts.py` — impact alignment baseline
 
@@ -33,15 +74,16 @@ evidence text. EICAT category and mechanism labels are ignored at this stage.
 Needs AWS SSO login (Bedrock access):
 
 ```bash
-uv run --project eval eval/align_impacts.py --input eval-data/batch_a
+uv run --project eval eval/align_impacts.py
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--input` | `eval-data/batch_a` | Directory of annotator `.xlsx` or `.csv` files (one file per annotator). |
+| `--input` | `eval-data/iaa/batch_a` | Directory of annotator `.xlsx` or `.csv` files (one file per annotator). |
 | `--output` | `eval/iaa_alignment.csv` | Where the cluster table is written. |
 | `--metrics` | `eval/iaa_metrics.json` | Where the full metrics (pairwise scores, α, κ, distributions) are written. |
 | `--model` | `bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0` | Pydantic AI model id used for clustering. |
+| `--reuse` | off | Skip clustering: recompute the metrics from the existing `--output` CSV, dropping excluded annotators (see below). No AWS access needed. |
 
 Input spreadsheets must contain the columns `Species/Reference Text` and
 `Evidence for EICAT impact category`; all other columns are ignored.
@@ -105,7 +147,7 @@ dropping that annotator's rows.
 Pure pandas; no AWS access needed:
 
 ```bash
-uv run --project eval eval/category_agreement.py --input eval-data/batch_a
+uv run --project eval eval/category_agreement.py
 ```
 
 ### What it produces
@@ -135,7 +177,7 @@ Jaccard heatmap) and `iaa_agreement_distribution.png` (impacts by number of agre
 annotators). If `category_metrics.json` exists, it also writes `iaa_max_category.png` (paper
 x annotator heatmap of maximum category). All headline numbers plus plain-language
 interpretation, using the Landis & Koch (1977) bands from `site/eval-protocol.qmd`, are
-written to `eval/iaa_report.md`. It also warns if `eval-data/batch_a` contains annotator
+written to `eval/iaa_report.md`. It also warns if `eval-data/iaa/batch_a` contains annotator
 files not yet covered by the impact-alignment metrics, so stale figures don't go unnoticed
 after `align_impacts.py` is re-run.
 
@@ -145,6 +187,23 @@ Every figure is written twice:
 - **`eval/figures_named/`** — the same figures with real initials instead, gitignored, for
   spotting annotator-specific data issues (e.g. a formatting quirk in one person's
   spreadsheet) that an anonymized chart makes hard to trace back to a source file.
+
+## `iaa_experience.py` — agreement by EICAT experience
+
+Splits the agreement study by annotators' EICAT experience ("Skilled": has performed EICAT
+assessments; "Unskilled": familiar with EICAT but has not), from `annotator_experience.json`
+(anonymous id -> level, taken from the Task 4.4 participation form). Reuses the clusters from
+`align_impacts.py`, so it makes no model calls.
+
+```bash
+uv run --project eval eval/iaa_experience.py [--bare]
+```
+
+It writes `eval/iaa_experience_metrics.json` (pairwise Jaccard by pair type, Krippendorff's alpha
+per group for impact presence and most severe category, Landis & Koch bands, per-annotator recall
+of majority-agreed impacts) and five brand-styled figures to `eval/figures_iaa/`. Differences
+between the groups get an exact permutation test over every way of splitting the annotators into
+groups of the same sizes (`exact_permutation_p` in the metrics).
 
 ## `gisd_eval.py` — end-to-end evaluation against GISD
 
@@ -303,3 +362,36 @@ records per analysis, priced at rough Bedrock list prices kept in the script (`P
   8.0.x refuses to start on Linux kernels >= 6.19
   ([SERVER-121912](https://jira.mongodb.org/browse/SERVER-121912)). Everything else is the
   same images and builds as the app.
+
+## `build_fewshot.py` — few-shot examples
+
+Builds `api/src/eicat_ai/fewshot_examples.json`, the worked examples in the extraction prompt, from
+seven hand-picked GISD references whose PDFs are not in `gisd_data/`. `gisd_eval.py` skips any PDF
+whose reference is a few-shot example, so an example is never scored.
+
+```bash
+uv run --project eval eval/build_fewshot.py
+```
+
+## Presentation figures
+
+Three scripts draw 16:9 PNG figures in the OneSTOP brand style (`eicat_eval.style`); each takes
+`--out DIR` and `--bare` (no in-figure title or subtitle, cropped, for slide decks whose slide
+titles carry the message). `presentation/build.sh` runs them all for the talk.
+
+| Script | Figures | Default output |
+|---|---|---|
+| `present_context.py` | The EICAT scale, the GISD data (bar charts and a Sankey diagram), the app pipeline and the evaluation design | `eval/figures_context/` |
+| `present_figures.py` | The 60-paper test runs compared: detection, radar charts of accuracy per mechanism and per category, label accuracy, severity errors | `eval/figures_present/` |
+| `present_best.py` | The best run alone: headline numbers, radar charts, most-severe-category confusion and distance | `eval/figures_best/` |
+
+The runs compared are listed in `RUNS` in `present_figures.py` and `RUN` in `present_best.py`.
+
+## Tests
+
+The library has a pytest suite in [`tests/`](tests/); it needs no data, network or AWS access.
+
+```bash
+uv run --project eval pytest eval/tests
+```
+
