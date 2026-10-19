@@ -47,15 +47,33 @@ export interface Sighting {
 
 export type VerifiedChoice = 'keep' | 'discard'
 
+export type RunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+
+// a run of one paper; runs from before per-paper runs have no paper_id
 export interface AnalysisRun {
   id: string
-  started_at: string
+  paper_id?: string | null
+  queued_at?: string | null
+  started_at?: string | null
   completed_at?: string | null
   model: string
   usage: Record<string, number>
   verified_choice?: VerifiedChoice | null
-  status: 'running' | 'completed' | 'failed'
+  status: RunStatus
+  error?: string | null
 }
+
+// a paper's state is that of its latest run that was not cancelled
+export interface PaperRunState {
+  state: 'not_run' | 'queued' | 'running' | 'completed' | 'failed'
+  run_id?: string | null
+  last_completed_at?: string | null
+  error?: string | null
+}
+
+// review of a paper's impacts waits until its run finishes
+export const isLocked = (analysis: AnalysisResponse, paperId: string) =>
+  ['queued', 'running'].includes(analysis.paper_runs[paperId]?.state ?? 'not_run')
 
 export type ImpactOrigin = 'ai' | 'human'
 export type ImpactState = 'active' | 'removed' | 'superseded' | 'suppressed'
@@ -107,5 +125,6 @@ export interface AnalysisResponse {
   error?: string
   completed_at?: string
   runs: AnalysisRun[]
+  paper_runs: Record<string, PaperRunState>
   impacts: ReviewedImpact[]
 }

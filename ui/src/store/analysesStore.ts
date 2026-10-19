@@ -10,7 +10,8 @@ interface AnalysesState {
   remove: (id: string) => Promise<void>
   addPaper: (aid: string, pid: string) => Promise<void>
   removePaper: (aid: string, pid: string) => Promise<void>
-  run: (id: string, verified?: VerifiedChoice) => Promise<void>
+  run: (id: string, paperIds?: string[], verified?: VerifiedChoice) => Promise<void>
+  cancelRun: (id: string, runId: string) => Promise<void>
   refresh: (id: string) => Promise<void>
   createImpact: (aid: string, paperId: string, fields: ImpactFields, evidence: EvidenceSpan[], note?: string) => Promise<void>
   patchImpact: (aid: string, iid: string, body: ImpactPatch) => Promise<void>
@@ -55,10 +56,12 @@ export const useAnalysesStore = create<AnalysesState>((set) => ({
     const updated = await api.analyses.removePaper(aid, pid)
     set((s) => ({ analyses: s.analyses.map((a) => (a.id === aid ? updated : a)) }))
   },
-  run: async (id, verified) => {
-    const updated = await api.analyses.run(id, verified)
+  run: async (id, paperIds, verified) => {
+    const updated = await api.analyses.run(id, paperIds, verified)
     set((s) => ({ analyses: s.analyses.map((a) => (a.id === id ? updated : a)) }))
   },
+  // a run started meanwhile can't be cancelled: refetch so the UI shows it running
+  cancelRun: (id, runId) => review(id, () => api.analyses.cancelRun(id, runId)),
   refresh: async (id) => {
     const updated = await api.analyses.get(id)
     set((s) => ({ analyses: s.analyses.map((a) => (a.id === id ? updated : a)) }))

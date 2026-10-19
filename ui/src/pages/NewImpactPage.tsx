@@ -9,7 +9,7 @@ import {
 } from '../components/ImpactInputs'
 import { needsReversibility, type AnchoredSpan } from '../components/impactFields'
 import { useAnalysesStore } from '../store/analysesStore'
-import type { Impact } from '../types'
+import { isLocked, type Impact } from '../types'
 import { useAnalysis } from './useAnalysis'
 
 type Form = Omit<Impact, 'evidence'>
@@ -40,7 +40,7 @@ export default function NewImpactPage() {
   }
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm({ ...fields, [key]: value })
   const reversibilityMissing = needsReversibility(fields.category) && !fields.reversibility
-  const readOnly = analysis.status === 'running'
+  const readOnly = isLocked(analysis, paperId)
   const filename = papers.find((p) => p.id === paperId)?.filename ?? paperId
   const back = (impactId?: string) => navigate(`/analyses/${analysis.id}${impactId ? `?impact=${impactId}` : ''}`)
 
@@ -79,7 +79,7 @@ export default function NewImpactPage() {
       panel={
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>New impact</Typography>
-          {readOnly && <Alert severity="info">Review is paused while the analysis runs.</Alert>}
+          {readOnly && <Alert severity="info">Review of this paper is paused while it runs.</Alert>}
           <TextField
             size="small" label="Alien species" required value={fields.alien_species}
             onChange={(e) => set('alien_species', e.target.value)}

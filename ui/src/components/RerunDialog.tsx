@@ -8,6 +8,7 @@ export interface RerunCounts {
 }
 
 interface Props {
+  title: string
   counts: RerunCounts
   onRun: (verified: VerifiedChoice | undefined) => Promise<void>
   onClose: () => void
@@ -16,7 +17,7 @@ interface Props {
 const plural = (n: number, word: string) => `${n} ${word} impact${n === 1 ? '' : 's'}`
 
 // confirms a re-run, saying what happens to the existing AI impacts; discarding verified ones asks twice
-export default function RerunDialog({ counts, onRun, onClose }: Props) {
+export default function RerunDialog({ title, counts, onRun, onClose }: Props) {
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +37,7 @@ export default function RerunDialog({ counts, onRun, onClose }: Props) {
 
   return (
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{confirmDiscard ? 'Discard verified impacts?' : 'Re-run analysis'}</DialogTitle>
+      <DialogTitle>{confirmDiscard ? 'Discard verified impacts?' : title}</DialogTitle>
       <DialogContent>
         {confirmDiscard ? (
           <DialogContentText>
