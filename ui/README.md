@@ -2,14 +2,16 @@
 
 ## Reviewing impacts
 
-After an analysis runs, its impacts are listed per paper under **Results**. The AI's output is a starting point for expert review:
+An analysis lists each of its papers in its own section, including papers not run yet. A paper's section holds its impacts, with buttons to add an impact from that paper and to remove the paper from the analysis. The AI's output is a starting point for expert review:
 
 - **Verify** an AI impact with its checkbox once you have checked it. The paper header shows how many of its active impacts are verified (impacts you added count as verified).
-- **Edit** an impact with the pencil button. Every field can be changed; reversibility is asked for only when the category is MR or MV. Saving an edit also verifies the impact. Fields that differ from the AI's original are marked, and hovering the "Changed from AI" chip shows the AI's values.
-- **Evidence** is always text from the paper. "Show in paper" opens the paper with the evidence highlighted. To change it, choose "Edit evidence" in the edit dialog, select passages in the paper, click "Add passage" for each, then "Use as evidence". A warning marks AI evidence that could not be found in the paper.
-- **Add an impact** with the add button on a paper in the **Papers** list: select its evidence in the paper, choose "Add impact", and fill in the form.
-- **Remove** an impact with the bin button. Removed impacts are listed under "Removed" for the paper and can be restored.
-- Every action can take an optional **reason**, and the history button shows an impact's full history: who (AI, system or a reviewer) did what, when, and what changed.
+- **Edit** an impact in the table. Category, mechanism, confidence and impacted species are changed in their cells; categories are listed most severe first, and choosing MR or MV asks for reversibility before saving. The row's details (the arrow button) hold alien species and justification. Each change is saved straight away and verifies the impact. An AI impact you changed shows "AI, edited" as its origin, with the AI's values on hover and in the row's details.
+- **Evidence** is always text from the paper. Clicking an impact's evidence opens its evidence page, with the paper beside a list of its passages. Select text in the paper and click "Add passage" to add one, remove passages from the list, and save. Where the AI didn't quote word for word, the evidence is the closest passage in the paper, marked with an info icon; a warning icon marks AI sentences not found in the paper at all. Hovering either icon shows the AI's wording.
+- **Add an impact** with the add button on a paper's section: select its evidence in the paper, fill in its fields beside it, and save.
+- **Remove** an impact, and see its **history**, from the row's menu (⋮). Removed impacts are listed under "Removed" for the paper and can be restored.
+- Every action can take an optional **reason**. In the table, type it in the row's details; it is recorded with the next change saved on that impact. The history shows who (AI, system or a reviewer) did what, when, and what changed.
+
+Papers are read on their own page, opened from the Papers list.
 
 ### Re-running
 

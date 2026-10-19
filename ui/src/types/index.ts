@@ -29,11 +29,13 @@ export interface Impact {
   impacted_species: string[]
 }
 
-// a passage of the paper markdown; null offsets mean the AI's passage could not be found in the paper
+// a passage of the paper markdown; null offsets mean the AI's passage could not be found in the paper, and
+// approximate means the AI's passage isn't in the paper word for word, so this is the closest passage to it
 export interface EvidenceSpan {
   start: number | null
   end: number | null
   text: string
+  approximate?: boolean
 }
 
 export interface Sighting {
@@ -66,6 +68,8 @@ export interface ReviewedImpact {
   ai?: Impact | null
   current: Impact
   evidence: EvidenceSpan[]
+  // a reviewer changed the evidence spans; anchoring the AI's evidence to paper text is not a change
+  evidence_edited: boolean
   verified: boolean
   state: ImpactState
   held_by?: string | null
