@@ -1,0 +1,4 @@
+# Built by build.sh: figures and the reference doc (the decks render to docs/_site/llmsig/)
+figures/
+assets/onestop-reference.pptx
+.~lock.*#

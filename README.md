@@ -62,7 +62,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for local development setup.
 - For deployment instructions see [infrastructure/README.md](infrastructure/README.md).
 
 # Docs
-The documentation site is built with quarto. The source files can be found in `/site` and the web pages can be rendered to the `/docs` folder using:
+The documentation site, including the presentation (`/docs/llmsig`), is built with quarto from the source files in `/docs`. The presentation's figures are generated rather than committed, so build them first, then preview or publish the site to the `gh-pages` branch:
 ```bash
-quarto render site
+docs/llmsig/build.sh
+quarto preview docs
+quarto publish gh-pages docs
 ```

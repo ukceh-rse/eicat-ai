@@ -377,7 +377,7 @@ uv run --project eval eval/build_fewshot.py
 
 Three scripts draw 16:9 PNG figures in the OneSTOP brand style (`eicat_eval.style`); each takes
 `--out DIR` and `--bare` (no in-figure title or subtitle, cropped, for slide decks whose slide
-titles carry the message). `presentation/build.sh` runs them all for the talk.
+titles carry the message). `docs/llmsig/build.sh` runs them all for the talk.
 
 | Script | Figures | Default output |
 |---|---|---|

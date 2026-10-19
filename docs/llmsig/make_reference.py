@@ -4,7 +4,7 @@ Pandoc picks slide layouts by name ("Title Slide", "Title and Content", ...). Th
 template (docs/assets/template.pptx, exported from Google Slides) names its layouts in
 Bulgarian, so this renames the ones we use and drops the template's sample slides.
 
-    uv run --with python-pptx presentation/make_reference.py
+    uv run --with python-pptx docs/llmsig/make_reference.py
 """
 
 from pathlib import Path
@@ -14,7 +14,7 @@ from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
 
 ROOT = Path(__file__).parent
-TEMPLATE = ROOT.parent / "docs" / "assets" / "template.pptx"
+TEMPLATE = ROOT.parent / "assets" / "template.pptx"
 OUTPUT = ROOT / "assets" / "onestop-reference.pptx"
 
 # template layout index -> pandoc layout name

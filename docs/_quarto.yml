@@ -1,0 +1,25 @@
+project:
+  type: website
+  # Only these are published; other files in docs/ (drafts, exports) stay local
+  render:
+    - index.qmd
+    - eval-protocol.qmd
+    - llmsig/eicat-ai-talk.qmd
+
+website:
+  title: "EICAT-AI"
+  navbar:
+    left:
+      - eval-protocol.qmd
+      - href: llmsig/eicat-ai-talk.qmd
+        text: Presentation
+
+bibliography: references.bib
+
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+    css: styles.css
+    toc: true
