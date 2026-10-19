@@ -55,6 +55,14 @@ by hand or their URL failed. A reference that can't be found can be marked unava
 it red; one not found yet is left unshaded. A PDF in the folder overrides the unavailable mark. The
 summary counts each group.
 
+Each searched reference (PDF present or marked unavailable) is badged with who searched for it:
+*by human* for anything done through the page or saved into the folder by hand, *by AI* for
+results an AI assistant recorded with
+`uv run library.py mark <page> <file> --by ai [--source URL | --unavailable]`. The status filter
+can show either group. A PDF the assistant located but couldn't download (e.g. the site blocks
+scripts) is recorded with `--blocked --source URL`, so it shows under *Source URL saved, PDF
+missing* for a human to fetch.
+
 The reference data is embedded in the page as JSON, so the page is also the manifest that
 `batch.py` and `eval/gisd_eval.py` read. Opened straight from disk it shows availability as of the
 last build or save; `serve` checks the folder live and enables Source URL. `build` can be re-run

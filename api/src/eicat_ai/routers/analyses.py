@@ -32,9 +32,11 @@ async def _run_analysis(analysis_id: PydanticObjectId) -> None:
             doc = await PaperDoc.get(paper_id)
             if doc is None or doc.markdown is None:
                 continue
-            results[str(paper_id)] = await extract_impacts(
+            results[str(paper_id)], usage = await extract_impacts(
                 agent, Paper(content=doc.markdown), analysis.species
             )
+            for k, v in usage.items():
+                analysis.usage[k] = analysis.usage.get(k, 0) + v
         analysis.results = results
         analysis.status = AnalysisStatus.COMPLETED
         analysis.completed_at = datetime.now(timezone.utc)

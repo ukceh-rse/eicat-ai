@@ -270,8 +270,23 @@ Cases whose conversion, analysis or judging failed are listed in the summary and
 | `pairs.csv` | Per judged pair: GISD vs extracted category and mechanism, judge's reason, both evidence texts. |
 | `impacts.csv` | All extracted impacts, flattened, with the GISD row each was paired to. |
 | `judged/<case>.json` | Judge output per case: model and pairs (indices into the case's GISD rows / extracted impacts). |
-| `extracted/<case>.json` | Raw app result per case: status, error, model, impacts. |
+| `extracted/<case>.json` | Raw app result per case: status, error, model, impacts, token usage. |
 | `gold.csv` | The GISD rows used as gold, with `case_id`. |
+
+### Comparing extraction models
+
+Run the pipeline once per model on the same papers (a subset directory of PDFs via `--data-dir`, with
+`--manifest`/`--gisd` pointing at the full library), then compare the scored runs:
+
+```bash
+EICAT_MODEL=bedrock:eu.anthropic.claude-haiku-5-5 uv run --project eval eval/gisd_eval.py run \
+  --data-dir gisd_data/sample20 --manifest gisd_data/references.html --gisd gisd_data/gisd_clean.csv --out eval/runs/cmp_haiku-5-5
+uv run --project eval eval/gisd_compare.py eval/runs/cmp_* --out eval/runs/model_comparison.md
+```
+
+[`gisd_compare.py`](gisd_compare.py) tabulates detection P/R/F1 (with a 95% bootstrap interval over cases),
+label accuracy and max-category agreement per run, and the extraction cost from the token usage the API
+records per analysis, priced at rough Bedrock list prices kept in the script (`PRICES`; re-check them).
 
 ### Caveats
 

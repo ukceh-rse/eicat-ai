@@ -1,6 +1,10 @@
+from dataclasses import replace
 from typing import List
 
 from pydantic_ai import Agent, ModelSettings, RunContext
+from pydantic_ai.models import Model
+from pydantic_ai.models.bedrock import BedrockConverseModel
+from pydantic_ai.providers.bedrock import BedrockProvider
 
 from eicat_ai.models import Impact, Paper
 
@@ -61,12 +65,32 @@ def paper_agent(model_name: str) -> Agent[None, Paper]:
     return agent
 
 
+# Newer Bedrock models reject request options older ones accept: `temperature` (Claude 5.5, GPT-5.x)
+# and a forced tool_choice (Claude Sonnet 5.5), which pydantic-ai sends for tool output. For the latter
+# tool output is kept (prompted JSON output extracted noticeably fewer impacts) but tool_choice is left
+# unset, so the model chooses to call the output tool and pydantic-ai retries if it replies with text.
+NO_TEMPERATURE = ("claude-haiku-5-5", "claude-sonnet-5-5", "openai.gpt-5")
+NO_FORCED_TOOL = ("claude-sonnet-5-5",)
+
+
+def _model(model_name: str) -> Model | str:
+    if not (model_name.startswith("bedrock:") and any(m in model_name for m in NO_FORCED_TOOL)):
+        return model_name
+    provider = BedrockProvider()
+    name = model_name.removeprefix("bedrock:")
+    profile = replace(provider.model_profile(name), bedrock_supports_tool_choice=False)
+    return BedrockConverseModel(name, provider=provider, profile=profile)
+
+
 def data_extraction_agent(model_name: str) -> Agent[Paper, List[Impact]]:
+    settings = ModelSettings(max_tokens=10_000)
+    if not any(m in model_name for m in NO_TEMPERATURE):
+        settings["temperature"] = 0.0
     agent: Agent[Paper, List[Impact]] = Agent[Paper, List[Impact]](
-        model=model_name,
+        model=_model(model_name),
         output_type=List[Impact],
         output_retries=5,
-        model_settings=ModelSettings(max_tokens=10_000, temperature=0.0),
+        model_settings=settings,
     )
 
     @agent.system_prompt

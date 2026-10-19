@@ -1,8 +1,9 @@
 import tempfile
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 
 import requests
+from botocore.exceptions import ClientError
 from grobid_client.grobid_client import GrobidClient
 from html_to_markdown import convert
 from loguru import logger
@@ -47,14 +48,25 @@ def tei_xml_to_markdown(tei_xml: str) -> str:
     return convert(response.text)
 
 
+MODEL_ERROR_ATTEMPTS = 3
+
+
 async def extract_impacts(
     agent: Agent[Paper, List[Impact]], paper: Paper, species: SpeciesNames
-) -> List[Impact]:
-    result = await agent.run(
-        [
-            f"Extract all impacts caused by the alien species {species.scientific_name}"
-            f" (also known as {', '.join(species.vernacular_names)})"
-        ],
-        deps=paper,
-    )
-    return result.output
+) -> Tuple[List[Impact], Dict[str, int]]:
+    prompt = [
+        f"Extract all impacts caused by the alien species {species.scientific_name}"
+        f" (also known as {', '.join(species.vernacular_names)})"
+    ]
+    for attempt in range(1, MODEL_ERROR_ATTEMPTS + 1):
+        try:
+            result = await agent.run(prompt, deps=paper)
+            break
+        except ClientError as e:
+            # Bedrock's ModelErrorException is a transient failure of the model itself, e.g. Nova's
+            # "Model produced invalid sequence as part of ToolUse"; the same request usually succeeds again
+            if e.response.get("Error", {}).get("Code") != "ModelErrorException" or attempt == MODEL_ERROR_ATTEMPTS:
+                raise
+            logger.warning(f"Model error (attempt {attempt}/{MODEL_ERROR_ATTEMPTS}), retrying: {e}")
+    usage = result.usage()
+    return result.output, {"input_tokens": usage.input_tokens, "output_tokens": usage.output_tokens, "requests": usage.requests}

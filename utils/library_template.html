@@ -95,6 +95,8 @@
   .pill.yes { background: var(--green); color: #fff; }
   .pill.no { background: #eef1ef; color: var(--muted); }
   .pill.unavail { background: var(--unavail); color: #fff; }
+  .by { font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--line); background: #fff; color: var(--muted); white-space: nowrap; }
+  .by.ai { border-color: #6b5bd2; color: #4b3cb0; }
   .btn { border: 1px solid var(--green-dark); background: var(--green-dark); color: #fff; border-radius: var(--radius); padding: 6px 12px; cursor: pointer; font-weight: 500; text-decoration: none; font-size: 13px; white-space: nowrap; }
   .btn:hover { background: var(--forest); border-color: var(--forest); }
   .btn.ghost { background: transparent; color: var(--forest); border-color: var(--line); }
@@ -136,6 +138,7 @@
         <li><span class="swatch missing"></span><b id="n-missing">0</b> still to find</li>
       </ul>
       <small id="counts"></small>
+      <small id="by-counts"></small>
       <small id="updated"></small>
     </div>
     <div class="card howto">
@@ -159,6 +162,8 @@
       <option value="auto">Available, downloadable from URL</option>
       <option value="manual">Available, no working URL</option>
       <option value="failed">Source URL saved, PDF missing</option>
+      <option value="human">Searched by a human</option>
+      <option value="ai">Searched by AI</option>
     </select>
     <select id="category" aria-label="EICAT category">
       <option value="">Any category</option>
@@ -179,6 +184,8 @@ let live = false;
 // auto: PDF present and its saved URL downloads it; manual: PDF present without a working URL
 // unavailable: researcher marked it as not obtainable (a PDF in the folder takes precedence)
 const state = r => r.available ? (r.source && r.source_ok ? 'auto' : 'manual') : r.unavailable ? 'unavailable' : 'missing';
+// who searched for it: entries without a mark were collected by hand (e.g. PDF saved into the folder)
+const searchedBy = r => r.available || r.unavailable ? (r.collected_by || 'human') : null;
 let current = null;  // file of the reference last interacted with, kept highlighted
 
 const $ = id => document.getElementById(id);
@@ -231,6 +238,8 @@ function row(r) {
     h('span', {}, r.mechanisms.join(' · ')));
   const file = h('div', { class: 'file' },
     pill(r),
+    searchedBy(r) ? h('span', { class: `by ${searchedBy(r)}`, title: `Searched for by ${searchedBy(r) === 'ai' ? 'an AI assistant' : 'a human'}` },
+      searchedBy(r) === 'ai' ? 'by AI' : 'by human') : null,
     h('code', {}, r.file),
     h('button', { class: 'btn ghost', type: 'button', 'data-copy': r.file, title: 'Copy filename' }, 'Copy'),
     r.available ? h('a', { class: 'btn', href: encodeURIComponent(r.file), target: '_blank', rel: 'noopener' }, 'Open') : null,
@@ -246,6 +255,7 @@ function matches(r, q, status, cat) {
   if (status === 'available' && !r.available) return false;
   if (status === 'failed' && (r.available || !r.source)) return false;
   if ((status === 'auto' || status === 'manual') && state(r) !== status) return false;
+  if ((status === 'human' || status === 'ai') && searchedBy(r) !== status) return false;
   if (cat && !r.categories.includes(cat)) return false;
   if (!q) return true;
   return [r.reference, r.file, r.species.join(' '), r.mechanisms.join(' ')].join(' ').toLowerCase().includes(q);
@@ -265,6 +275,8 @@ function summarise() {
   $('n-unavail').textContent = unavail.toLocaleString();
   $('n-missing').textContent = (n - have - unavail).toLocaleString();
   $('counts').textContent = `${have.toLocaleString()} of ${n.toLocaleString()} PDFs available`;
+  const ai = refs.filter(r => searchedBy(r) === 'ai').length, human = refs.filter(r => searchedBy(r) === 'human').length;
+  $('by-counts').textContent = `Searched by a human: ${human.toLocaleString()} · by AI: ${ai.toLocaleString()}`;
   $('updated').textContent = live ? 'Checked live against the folder' : `Snapshot from ${data.updated ? new Date(data.updated).toLocaleString() : 'the last build'}`;
 }
 
@@ -312,7 +324,7 @@ $('refs').addEventListener('click', async e => {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || res.statusText);
-      Object.assign(r, { unavailable: body.unavailable, error: null });
+      Object.assign(r, { unavailable: body.unavailable, collected_by: body.collected_by, error: null });
     } catch (err) {
       r.error = `Could not reach the library server: ${err.message}`;
     }
@@ -338,7 +350,7 @@ $('refs').addEventListener('submit', async e => {
     });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || res.statusText);
-    Object.assign(r, { available: body.available, source: body.source, source_ok: body.source_ok, error: body.error });
+    Object.assign(r, { available: body.available, source: body.source, source_ok: body.source_ok, collected_by: body.collected_by, error: body.error });
   } catch (err) {
     r.error = `Could not reach the library server: ${err.message}`;
   }

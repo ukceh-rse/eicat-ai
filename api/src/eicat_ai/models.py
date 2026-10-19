@@ -220,6 +220,7 @@ class Analysis(MongoDocument):
     results: Dict[str, List[Impact]] = Field(default_factory=dict)
     error: Optional[str] = None
     completed_at: Optional[datetime] = None
+    usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over the run's papers
 
     class Settings:
         name = "analyses"
@@ -238,6 +239,7 @@ class AnalysisResponse(BaseModel):
     results: Dict[str, List[Impact]] = Field(default_factory=dict)
     error: Optional[str] = None
     completed_at: Optional[datetime] = None
+    usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over the run's papers
 
     model_config = {"populate_by_name": True}
 
@@ -252,6 +254,7 @@ class AnalysisResponse(BaseModel):
             results=doc.results,
             error=doc.error,
             completed_at=doc.completed_at,
+            usage=doc.usage,
         )
 
 

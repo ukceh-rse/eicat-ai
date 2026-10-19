@@ -121,8 +121,8 @@ async def post(client: httpx.AsyncClient, url: str, **kwargs) -> dict:
     return response.json()
 
 
-def save_record(extracted_dir: Path, case: dict, status: str, error: str | None, impacts: list) -> None:
-    record = {**case, "model": os.environ.get("EICAT_MODEL"), "status": status, "error": error, "impacts": impacts}
+def save_record(extracted_dir: Path, case: dict, status: str, error: str | None, impacts: list, usage: dict | None = None) -> None:
+    record = {**case, "model": os.environ.get("EICAT_MODEL"), "status": status, "error": error, "impacts": impacts, "usage": usage or {}}
     (extracted_dir / f"{case['case_id']}.json").write_text(json.dumps(record, indent=2))
     print(f"  {case['case_id']}: {status}" + (f" ({len(impacts)} impacts)" if status == "completed" else f" - {error}"))
 
@@ -146,7 +146,7 @@ async def extract_pdf(client: httpx.AsyncClient, sem: asyncio.Semaphore, pdf: Pa
                 await post(client, f"/analyses/{analysis['id']}/run")
                 analysis = await wait_for(client, f"/analyses/{analysis['id']}", {"completed", "failed"}, ANALYSIS_TIMEOUT)
                 impacts = analysis["results"].get(paper["id"], [])
-                save_record(extracted_dir, case, analysis["status"], analysis["error"], impacts)
+                save_record(extracted_dir, case, analysis["status"], analysis["error"], impacts, analysis.get("usage"))
             except Exception as e:
                 save_record(extracted_dir, case, "failed", str(e) or repr(e), [])
 
@@ -156,7 +156,10 @@ async def extract_all(cases: list[dict], data_dir: Path, extracted_dir: Path, ap
     for case in cases:
         by_pdf.setdefault(case["pdf"], []).append(case)
     sem = asyncio.Semaphore(concurrency)
-    async with httpx.AsyncClient(base_url=api_url, timeout=120) as client:
+    # no keep-alive: uvicorn drops idle connections after 5s, the same as POLL_SECONDS, and a request sent
+    # on a connection it is closing fails with "Server disconnected without sending a response"
+    limits = httpx.Limits(max_keepalive_connections=0)
+    async with httpx.AsyncClient(base_url=api_url, timeout=120, limits=limits) as client:
         await asyncio.gather(*(extract_pdf(client, sem, data_dir / pdf, cs, extracted_dir) for pdf, cs in by_pdf.items()))
 
 
