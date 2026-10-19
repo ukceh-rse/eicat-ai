@@ -8,16 +8,17 @@ Reads the run's `metrics.json` and `cases.csv` and writes 16:9 PNGs in OneSTOP b
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from matplotlib.patches import FancyBboxPatch
 
-import present_style as style
-from present_figures import CATEGORIES, MECHANISMS, RUNS_DIR, class_accuracy, fig_max_confusion
-from present_style import DARK, GREEN, GRID, INK, LIGHT, MUTED, SURFACE
+from eicat_eval import charts, style
+from eicat_eval.eicat import CATEGORY_NAMES, MECHANISM_LABELS, category_label
+from eicat_eval.paths import EVAL
+from eicat_eval.runs import class_accuracy, read_cases, read_metrics
+from eicat_eval.style import DARK, GREEN, GRID, INK, LIGHT, MUTED, SURFACE
 
 RUN, MODEL, PROMPT = "t60_v2_haiku", "Haiku 5.5", "Improved"  # best F2, category and max-category accuracy
 NAME = f"{MODEL}, {PROMPT.lower()} prompt"
@@ -45,8 +46,7 @@ def fig_headline(m: dict, cases: pd.DataFrame, out: Path) -> None:
     for i, (value, label, detail) in enumerate(tiles):
         x = i * width + 0.012
         ax.add_patch(FancyBboxPatch((x, 0.12), width - 0.024, 0.72, transform=ax.transAxes,
-                                                      boxstyle="round,pad=0,rounding_size=0.02",
-                                                      facecolor=LIGHT, edgecolor="none"))
+                                    boxstyle="round,pad=0,rounding_size=0.02", facecolor=LIGHT, edgecolor="none"))
         cx = x + (width - 0.024) / 2
         ax.text(cx, 0.6, value, transform=ax.transAxes, ha="center", va="center", fontsize=54,
                 fontfamily=style.HEADING, fontweight="bold", color=DARK)
@@ -67,23 +67,10 @@ def fig_radial(m: dict, field: str, names: dict[str, str], title: str, filename:
                           subplot_kw={"projection": "polar"})
     fig.subplots_adjust(left=0.2, right=0.8, top=0.71, bottom=0.21)
 
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
-    closed = np.append(angles, angles[0])
-    ax.set_theta_offset(np.pi / 2)
-    ax.set_theta_direction(-1)
-    ax.set_ylim(0, 1)
-    ax.set_yticks([0.25, 0.5, 0.75, 1.0], ["", "50%", "", "100%"], fontsize=10, color=MUTED)
-    ax.set_rlabel_position(180 / len(labels))
-    ax.spines["polar"].set_color(GRID)
-    ax.grid(color=GRID, linewidth=0.8)
-    ax.set_xticks(angles, [f"{names[label]}\nn={n}" for label, n in zip(labels, support)], fontsize=12.5, color=INK)
-    ax.tick_params(axis="x", pad=16)
-    for tick, angle in zip(ax.get_xticklabels(), angles):  # anchor side labels away from the ring
-        side = np.sin(angle)
-        tick.set_horizontalalignment("left" if side > 0.1 else "right" if side < -0.1 else "center")
-
-    ax.fill(closed, np.append(accuracy, accuracy[0]), color=GREEN, alpha=0.22)
-    ax.plot(closed, np.append(accuracy, accuracy[0]), color=DARK, linewidth=2.4)
+    angles = charts.radar_axes(ax, [f"{names[label]}\nn={n}" for label, n in zip(labels, support)],
+                               ["", "50%", "", "100%"], fontsize=12.5)
+    ax.fill(charts.closed(angles), charts.closed(accuracy), color=GREEN, alpha=0.22)
+    ax.plot(charts.closed(angles), charts.closed(accuracy), color=DARK, linewidth=2.4)
     ax.scatter(angles, accuracy, s=70, color=DARK, edgecolor=SURFACE, linewidth=1.5, zorder=4)
     for angle, value in zip(angles, accuracy):  # inside high points (clear of spoke labels), outside low ones
         ax.text(angle, value - 0.14 if value >= 0.6 else value + 0.14, f"{value:.0%}", ha="center", va="center", fontsize=12,
@@ -124,16 +111,16 @@ def fig_severity_distance(cases: pd.DataFrame, out: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", type=Path, default=Path(__file__).parent / "figures_best")
+    parser.add_argument("--out", type=Path, default=EVAL / "figures_best")
+    parser.add_argument("--bare", action="store_true", help="No in-figure titles, cropped; for slide decks.")
     args = parser.parse_args()
 
-    style.apply()
-    m = json.loads((RUNS_DIR / RUN / "metrics.json").read_text())
-    cases = pd.read_csv(RUNS_DIR / RUN / "cases.csv")
+    style.apply(bare=args.bare)
+    m, cases = read_metrics(RUN), read_cases(RUN)
     fig_headline(m, cases, args.out)
-    fig_radial(m, "mechanism", MECHANISMS, "Accuracy by impact mechanism", "02_mechanism_radial.png", args.out)
-    fig_radial(m, "category", CATEGORIES, "Accuracy by EICAT category", "03_category_radial.png", args.out)
-    fig_max_confusion({(MODEL, PROMPT): m}, (MODEL, PROMPT), args.out, "04_max_category_confusion.png")
+    fig_radial(m, "mechanism", MECHANISM_LABELS, "Accuracy by impact mechanism", "02_mechanism_radial.png", args.out)
+    fig_radial(m, "category", {code: category_label(code) for code in CATEGORY_NAMES}, "Accuracy by EICAT category", "03_category_radial.png", args.out)
+    charts.max_category_confusion(m, f"{MODEL} {PROMPT.lower()}", args.out / "04_max_category_confusion.png")
     fig_severity_distance(cases, args.out)
 
 

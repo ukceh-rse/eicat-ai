@@ -11,19 +11,17 @@ fill = prompt (baseline hatched, improved solid).
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.patches import Patch, Rectangle
+from matplotlib.patches import Patch
 
-import present_style as style
-from present_style import DARK, GREEN, GRID, INK, LIGHT, MID, MUTED, SURFACE
+from eicat_eval import charts, style
+from eicat_eval.eicat import CATEGORY_NAMES, MECHANISM_LABELS, category_label
+from eicat_eval.paths import EVAL
+from eicat_eval.runs import class_accuracy, read_metrics
+from eicat_eval.style import DARK, GREEN, GRID, INK, MUTED, PALE, SURFACE
 
-PALE = "#9BD8A8"  # light step of the brand green, for a third lightness level
-
-RUNS_DIR = Path(__file__).parent / "runs"
 # (run directory, model, prompt)
 RUNS = [
     ("t60_v0_haiku", "Haiku 5.5", "Baseline"),
@@ -32,31 +30,11 @@ RUNS = [
     ("t60_v2_novalite", "Nova Lite", "Improved"),
 ]
 MODEL_COLOUR = {"Haiku 5.5": DARK, "Nova Lite": GREEN}
-
-CATEGORIES = {  # severity order, as EICAT lists them
-    "MC": "Minimal\nConcern",
-    "MN": "Minor",
-    "MO": "Moderate",
-    "MR": "Major",
-    "MV": "Massive",
-    "DD": "Data\nDeficient",
-}
-MECHANISMS = {
-    "Competition": "Competition",
-    "Predation": "Predation",
-    "Hybridisation": "Hybridisation",
-    "Transmission of disease": "Disease\ntransmission",
-    "Poisoning/toxicity": "Poisoning /\ntoxicity",
-    "Grazing/herbivory/browsing": "Grazing /\nherbivory",
-    "Chemical impact on ecosystem": "Chemical\nimpact",
-    "Physical impact on ecosystem": "Physical\nimpact",
-    "Structural impact on ecosystem": "Structural\nimpact",
-    "Indirect impacts through interactions with other species": "Indirect\n(via other species)",
-}
+CATEGORY_LABELS = {code: category_label(code) for code in CATEGORY_NAMES}
 
 
 def load() -> dict[tuple[str, str], dict]:
-    return {(model, prompt): json.loads((RUNS_DIR / run / "metrics.json").read_text()) for run, model, prompt in RUNS}
+    return {(model, prompt): read_metrics(run) for run, model, prompt in RUNS}
 
 
 def bar_style(model: str, prompt: str) -> dict:
@@ -111,36 +89,18 @@ def fig_detection(metrics: dict, out: Path) -> None:
 # ── 2 & 3. radial per-class accuracy ──────────────────────────────────────────
 
 
-def class_accuracy(m: dict, field: str, label: str) -> tuple[float, int]:
-    """Per-class accuracy on matched pairs: share of GISD impacts of this class given this label."""
-    row = m["labels"][field]["matched"]["per_class"].get(label)
-    return (row["recall"], row["support"]) if row and row["support"] else (np.nan, 0)
-
-
 def radar_panel(ax, labels: list[str], names: dict[str, str], series: dict[str, tuple[list, list]],
                 colour: str, title: str) -> None:
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
-    closed = np.append(angles, angles[0])
-    ax.set_theta_offset(np.pi / 2)
-    ax.set_theta_direction(-1)
-    ax.set_ylim(0, 1)
-    ax.set_yticks([0.25, 0.5, 0.75, 1.0], ["", "0.5", "", "1.0"], fontsize=10, color=MUTED)
-    ax.set_rlabel_position(180 / len(labels))
-    ax.spines["polar"].set_color(GRID)
-    ax.grid(color=GRID, linewidth=0.8)
     supports = series["Improved"][1]
-    ax.set_xticks(angles, [f"{names[label]}\nn={n}" for label, n in zip(labels, supports)], fontsize=11.5, color=INK)
-    ax.tick_params(axis="x", pad=16)
-    for tick, angle in zip(ax.get_xticklabels(), angles):  # anchor side labels away from the ring
-        side = np.sin(angle)
-        tick.set_horizontalalignment("left" if side > 0.1 else "right" if side < -0.1 else "center")
-
+    angles = charts.radar_axes(ax, [f"{names[label]}\nn={n}" for label, n in zip(labels, supports)],
+                               ["", "0.5", "", "1.0"], fontsize=11.5)
     base, _ = series["Baseline"]
     improved, _ = series["Improved"]
-    ax.plot(closed, np.append(base, base[0]), color=colour, linewidth=2, linestyle=(0, (4, 2.5)), label="Baseline")
+    closed_angles = charts.closed(angles)
+    ax.plot(closed_angles, charts.closed(base), color=colour, linewidth=2, linestyle=(0, (4, 2.5)), label="Baseline")
     ax.scatter(angles, base, s=46, facecolor=SURFACE, edgecolor=colour, linewidth=1.8, zorder=3)
-    ax.fill(closed, np.append(improved, improved[0]), color=colour, alpha=0.18)
-    ax.plot(closed, np.append(improved, improved[0]), color=colour, linewidth=2.4, label="Improved")
+    ax.fill(closed_angles, charts.closed(improved), color=colour, alpha=0.18)
+    ax.plot(closed_angles, charts.closed(improved), color=colour, linewidth=2.4, label="Improved")
     ax.scatter(angles, improved, s=58, color=colour, edgecolor=SURFACE, linewidth=1.5, zorder=4)
     ax.set_title(title, fontfamily=style.HEADING, fontweight="bold", fontsize=18, color=DARK, pad=58)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncols=2, fontsize=12, handlelength=2.6)
@@ -185,60 +145,7 @@ def fig_label_accuracy(metrics: dict, out: Path) -> None:
     style.save(fig, out / "04_label_accuracy.png")
 
 
-# ── 5. max-category confusion ─────────────────────────────────────────────────
-
-
-def fig_max_confusion(metrics: dict, run: tuple[str, str], out: Path,
-                      filename: str = "05_max_category_confusion.png") -> None:
-    confusion = metrics[run]["max_category"]["confusion"]
-    labels, matrix = confusion["labels"], np.array(confusion["matrix"])
-    order = [label for label in [*CATEGORIES, "none"] if label in labels]
-    index = [labels.index(label) for label in order]
-    matrix = matrix[np.ix_(index, index)]
-    rows = [i for i in range(len(order)) if matrix[i].sum()]  # GISD always gives a category
-    cols = [j for j in range(len(order)) if matrix[:, j].sum()]
-    matrix = matrix[np.ix_(rows, cols)]
-    row_labels = [CATEGORIES[order[i]].replace("\n", " ") for i in rows]
-    col_labels = ["No impact\nfound" if order[j] == "none" else CATEGORIES[order[j]] for j in cols]
-
-    share = matrix / matrix.sum(axis=1, keepdims=True)
-    cmap = LinearSegmentedColormap.from_list("brand", [SURFACE, LIGHT, GREEN, MID, DARK])
-    accuracy = metrics[run]["max_category"]["exact_accuracy"]
-    fig, ax = style.slide(
-        f"{run[0]} {run[1].lower()}: the most severe category is exact for {accuracy:.0%} of papers",
-        "Most severe EICAT category per paper, GISD (rows) against the app (columns). Diagonal = exact; "
-        "shading = share of the GISD row.",
-    )
-    fig.subplots_adjust(left=0.2, right=0.8, top=0.68, bottom=0.14)
-    ax.imshow(share, cmap=cmap, vmin=0, vmax=1, aspect="auto")
-    ax.grid(False)
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-    ax.set_xticks(np.arange(len(cols) + 1) - 0.5, minor=True)
-    ax.set_yticks(np.arange(len(rows) + 1) - 0.5, minor=True)
-    ax.grid(which="minor", color=SURFACE, linewidth=3)
-    ax.tick_params(which="minor", length=0)
-    ax.set_xticks(range(len(cols)), col_labels, fontsize=12, color=INK)
-    ax.set_yticks(range(len(rows)), row_labels, fontsize=12, color=INK)
-    ax.xaxis.tick_top()
-    ax.set_xlabel("App", fontsize=13, labelpad=10)
-    ax.xaxis.set_label_position("top")
-    ax.set_ylabel("GISD", fontsize=13)
-    for i in range(len(rows)):
-        for j in range(len(cols)):
-            if matrix[i, j]:
-                diagonal = order[rows[i]] == order[cols[j]]
-                ax.text(j, i, matrix[i, j], ha="center", va="center", fontsize=15,
-                        fontweight="bold" if diagonal else "normal",
-                        color=SURFACE if share[i, j] > 0.45 else INK)
-    for i in range(len(rows)):
-        if order[rows[i]] in [order[j] for j in cols]:
-            j = [order[c] for c in cols].index(order[rows[i]])
-            ax.add_patch(Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False, edgecolor=DARK, linewidth=2.2))
-    style.save(fig, out / filename)
-
-
-# ── 6. severity error ─────────────────────────────────────────────────────────
+# ── 5. severity error ─────────────────────────────────────────────────────────
 
 
 def fig_severity_error(metrics: dict, out: Path) -> None:
@@ -281,18 +188,20 @@ def fig_severity_error(metrics: dict, out: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", type=Path, default=Path(__file__).parent / "figures_present")
+    parser.add_argument("--out", type=Path, default=EVAL / "figures_present")
+    parser.add_argument("--bare", action="store_true", help="No in-figure titles, cropped; for slide decks.")
     args = parser.parse_args()
 
-    style.apply()
+    style.apply(bare=args.bare)
     metrics = load()
     fig_detection(metrics, args.out)
-    fig_radial(metrics, "mechanism", MECHANISMS, "Accuracy by impact mechanism",
+    fig_radial(metrics, "mechanism", MECHANISM_LABELS, "Accuracy by impact mechanism",
                "02_mechanism_radial.png", args.out)
-    fig_radial(metrics, "category", CATEGORIES, "Accuracy by EICAT category",
+    fig_radial(metrics, "category", CATEGORY_LABELS, "Accuracy by EICAT category",
                "03_category_radial.png", args.out)
     fig_label_accuracy(metrics, args.out)
-    fig_max_confusion(metrics, ("Haiku 5.5", "Improved"), args.out)
+    charts.max_category_confusion(metrics[("Haiku 5.5", "Improved")], "Haiku 5.5 improved",
+                                  args.out / "05_max_category_confusion.png")
     fig_severity_error(metrics, args.out)
 
 
