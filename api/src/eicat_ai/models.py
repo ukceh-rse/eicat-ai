@@ -233,9 +233,11 @@ class Sighting(BaseModel):
 
 
 class RunStatus(str, Enum):
+    QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class VerifiedChoice(str, Enum):
@@ -244,13 +246,36 @@ class VerifiedChoice(str, Enum):
 
 
 class AnalysisRun(BaseModel):
+    """A run of one paper. Runs from before per-paper runs have no `paper_id` and covered every paper of the
+    analysis; they count as runs of the papers with a `results` entry."""
+
     id: str = Field(default_factory=lambda: str(uuid4()))
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    paper_id: Optional[str] = None
+    queued_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     model: str
     usage: Dict[str, int] = Field(default_factory=dict)
     verified_choice: Optional[VerifiedChoice] = None
-    status: RunStatus = RunStatus.RUNNING
+    status: RunStatus = RunStatus.QUEUED
+    error: Optional[str] = None
+
+
+def _utc(at: Optional[datetime]) -> Optional[datetime]:
+    """Mongo returns naive UTC datetimes; new ones are aware. Comparing the two needs them alike."""
+    return at.replace(tzinfo=timezone.utc) if at is not None and at.tzinfo is None else at
+
+
+class PaperRunState(BaseModel):
+    state: Literal["not_run", "queued", "running", "completed", "failed"] = "not_run"
+    run_id: Optional[str] = None
+    last_completed_at: Optional[datetime] = None
+    error: Optional[str] = None
+
+    @property
+    def locked(self) -> bool:
+        """Review of the paper's impacts waits until its run finishes."""
+        return self.state in ("queued", "running")
 
 
 class ImpactOrigin(str, Enum):
@@ -295,7 +320,7 @@ class Analysis(MongoDocument):
     results: Dict[str, List[Impact]] = Field(default_factory=dict)
     error: Optional[str] = None
     completed_at: Optional[datetime] = None
-    usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over the run's papers
+    usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over all runs
     runs: List[AnalysisRun] = Field(default_factory=list)
     impacts: List[ReviewedImpact] = Field(default_factory=list)
 
@@ -303,6 +328,43 @@ class Analysis(MongoDocument):
         """Impacts of the analysis's current papers; a removed paper's impacts are kept for when it is added back."""
         papers = {str(p) for p in self.paper_ids}
         return [i for i in self.impacts if i.paper_id in papers]
+
+    def run_states(self) -> Dict[str, PaperRunState]:
+        """Each current paper's run state: that of its latest run that was not cancelled, or not run."""
+        states: Dict[str, PaperRunState] = {}
+        for pid in (str(p) for p in self.paper_ids):
+            runs = [
+                r for r in self.runs
+                if r.status != RunStatus.CANCELLED and (r.paper_id == pid or (r.paper_id is None and pid in self.results))
+            ]
+            completed = [_utc(r.completed_at) for r in runs if r.status == RunStatus.COMPLETED and r.completed_at]
+            state = PaperRunState(last_completed_at=max(completed, default=None))
+            if runs:
+                latest = runs[-1]  # runs are appended in the order queued
+                state.state, state.run_id, state.error = latest.status.value, latest.id, latest.error
+            states[pid] = state
+        return states
+
+    def refresh_status(self) -> None:
+        """Derive `status`, `error` and `completed_at` from the run states of the current papers."""
+        states = list(self.run_states().values())
+        failed = [s for s in states if s.state == "failed"]
+        if any(s.locked for s in states):
+            self.status = AnalysisStatus.RUNNING
+        elif failed:
+            self.status = AnalysisStatus.FAILED
+        elif any(s.state == "completed" for s in states):
+            self.status = AnalysisStatus.COMPLETED
+        else:
+            self.status = AnalysisStatus.PENDING
+        if failed:
+            run_at = {r.id: _utc(r.completed_at or r.started_at) for r in self.runs}
+            latest = max(failed, key=lambda s: run_at.get(s.run_id) or datetime.min.replace(tzinfo=timezone.utc))
+            # a failed run from before per-paper runs kept its error on the analysis only
+            self.error = latest.error or self.error
+        else:
+            self.error = None
+        self.completed_at = max((s.last_completed_at for s in states if s.last_completed_at), default=None)
 
     class Settings:
         name = "analyses"
@@ -356,8 +418,9 @@ class AnalysisResponse(BaseModel):
     results: Dict[str, List[Impact]] = Field(default_factory=dict)
     error: Optional[str] = None
     completed_at: Optional[datetime] = None
-    usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over the run's papers
+    usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over all runs
     runs: List[AnalysisRun] = Field(default_factory=list)
+    paper_runs: Dict[str, PaperRunState] = Field(default_factory=dict)
     impacts: List[ReviewedImpact] = Field(default_factory=list)
 
     model_config = {"populate_by_name": True}
@@ -375,6 +438,7 @@ class AnalysisResponse(BaseModel):
             completed_at=doc.completed_at,
             usage=doc.usage,
             runs=doc.runs,
+            paper_runs=doc.run_states(),
             impacts=doc.visible_impacts(),
         )
 
