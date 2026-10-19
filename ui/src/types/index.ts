@@ -16,14 +16,81 @@ export interface SpeciesNames {
   vernacular_names: string[]
 }
 
+export type Reversibility = 'reversible' | 'irreversible' | 'unknown'
+
 export interface Impact {
   alien_species: string
   mechanism: string
   category: string
+  reversibility?: Reversibility | null
   evidence: string
-  confidence?: string
+  confidence?: string | null
   justification: string
   impacted_species: string[]
+}
+
+// a passage of the paper markdown; null offsets mean the AI's passage could not be found in the paper
+export interface EvidenceSpan {
+  start: number | null
+  end: number | null
+  text: string
+}
+
+export interface Sighting {
+  run_id: string
+  at: string
+  ai: Impact
+  evidence: EvidenceSpan[]
+}
+
+export type VerifiedChoice = 'keep' | 'discard'
+
+export interface AnalysisRun {
+  id: string
+  started_at: string
+  completed_at?: string | null
+  model: string
+  usage: Record<string, number>
+  verified_choice?: VerifiedChoice | null
+  status: 'running' | 'completed' | 'failed'
+}
+
+export type ImpactOrigin = 'ai' | 'human'
+export type ImpactState = 'active' | 'removed' | 'superseded' | 'suppressed'
+
+export interface ReviewedImpact {
+  id: string
+  paper_id: string
+  origin: ImpactOrigin
+  run_id?: string | null
+  ai?: Impact | null
+  current: Impact
+  evidence: EvidenceSpan[]
+  verified: boolean
+  state: ImpactState
+  held_by?: string | null
+  sightings: Sighting[]
+}
+
+// editable impact fields; evidence is set only as spans selected in the paper
+export type ImpactFields = Partial<Omit<Impact, 'evidence'>>
+
+export interface FieldChange {
+  field: string
+  old: unknown
+  new: unknown
+}
+
+export interface AuditEvent {
+  _id: string
+  at: string
+  analysis_id: string
+  impact_id?: string | null
+  run_id?: string | null
+  actor: { kind: 'human' | 'ai' | 'system'; user_id: string | null }
+  action: string
+  changes: FieldChange[]
+  note?: string | null
 }
 
 export interface AnalysisResponse {
@@ -35,4 +102,6 @@ export interface AnalysisResponse {
   results: Record<string, Impact[]>
   error?: string
   completed_at?: string
+  runs: AnalysisRun[]
+  impacts: ReviewedImpact[]
 }

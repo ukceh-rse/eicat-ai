@@ -1,13 +1,42 @@
-import type { AnalysisResponse, PaperResponse, SpeciesNames } from '../types'
+import type {
+  AnalysisResponse, AuditEvent, EvidenceSpan, ImpactFields, PaperResponse, SpeciesNames, VerifiedChoice,
+} from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
+export class ApiError extends Error {
+  status: number
+  body: unknown
+
+  constructor(status: number, text: string) {
+    let body: unknown = text
+    try { body = JSON.parse(text) } catch { /* not JSON */ }
+    const detail = (body as { detail?: unknown })?.detail
+    super(typeof detail === 'string' ? detail : text)
+    this.status = status
+    this.body = body
+  }
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init)
-  if (!res.ok) throw new Error(await res.text())
+  if (!res.ok) throw new ApiError(res.status, await res.text())
   if (res.status === 204) return undefined as T
   return res.json()
 }
+
+export interface ImpactPatch {
+  fields?: ImpactFields
+  evidence?: EvidenceSpan[]
+  verified?: boolean
+  note?: string
+}
+
+const json = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+})
 
 export const api = {
   papers: {
@@ -35,7 +64,19 @@ export const api = {
       req<AnalysisResponse>(`/analyses/${aid}/papers/${pid}`, { method: 'POST' }),
     removePaper: (aid: string, pid: string) =>
       req<AnalysisResponse>(`/analyses/${aid}/papers/${pid}`, { method: 'DELETE' }),
-    run: (id: string) =>
-      req<AnalysisResponse>(`/analyses/${id}/run`, { method: 'POST' }),
+    run: (id: string, verified?: VerifiedChoice) =>
+      req<AnalysisResponse>(`/analyses/${id}/run${verified ? `?verified=${verified}` : ''}`, { method: 'POST' }),
+    audit: (id: string, impactId?: string) =>
+      req<AuditEvent[]>(`/analyses/${id}/audit${impactId ? `?impact_id=${encodeURIComponent(impactId)}` : ''}`),
+  },
+  impacts: {
+    create: (aid: string, body: { paper_id: string; fields: ImpactFields; evidence: EvidenceSpan[]; note?: string }) =>
+      req<AnalysisResponse>(`/analyses/${aid}/impacts`, json('POST', body)),
+    patch: (aid: string, iid: string, body: ImpactPatch) =>
+      req<AnalysisResponse>(`/analyses/${aid}/impacts/${iid}`, json('PATCH', body)),
+    remove: (aid: string, iid: string, note?: string) =>
+      req<AnalysisResponse>(`/analyses/${aid}/impacts/${iid}/remove`, json('POST', { note })),
+    restore: (aid: string, iid: string, note?: string) =>
+      req<AnalysisResponse>(`/analyses/${aid}/impacts/${iid}/restore`, json('POST', { note })),
   },
 }
