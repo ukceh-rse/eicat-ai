@@ -4,6 +4,7 @@ import csv
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
+from uuid import uuid4
 
 from beanie import Document as MongoDocument, PydanticObjectId
 from pydantic import BaseModel, Field
@@ -212,6 +213,77 @@ class AnalysisStatus(str, Enum):
     FAILED = "failed"
 
 
+class EvidenceSpan(BaseModel):
+    """A passage of the paper markdown; offsets are None when the passage could not be located (unanchored)."""
+
+    start: Optional[int] = None
+    end: Optional[int] = None
+    text: str
+
+
+class Sighting(BaseModel):
+    """One run's extraction of an impact whose key was held, kept in full on the suppressed record."""
+
+    run_id: str
+    at: datetime
+    ai: Impact
+    evidence: List[EvidenceSpan] = Field(default_factory=list)
+
+
+class RunStatus(str, Enum):
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class VerifiedChoice(str, Enum):
+    KEEP = "keep"
+    DISCARD = "discard"
+
+
+class AnalysisRun(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
+    model: str
+    usage: Dict[str, int] = Field(default_factory=dict)
+    verified_choice: Optional[VerifiedChoice] = None
+    status: RunStatus = RunStatus.RUNNING
+
+
+class ImpactOrigin(str, Enum):
+    AI = "ai"
+    HUMAN = "human"
+
+
+class ImpactState(str, Enum):
+    ACTIVE = "active"
+    REMOVED = "removed"
+    SUPERSEDED = "superseded"
+    SUPPRESSED = "suppressed"
+
+
+class ReviewedImpact(BaseModel):
+    """An impact under review: `ai` is the frozen AI output (None for human-created impacts), `current` the reviewed
+    values. `evidence` spans are the source of truth for `current.evidence`, which holds their texts joined."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    paper_id: str
+    origin: ImpactOrigin
+    run_id: Optional[str] = None
+    ai: Optional[Impact] = None
+    current: Impact
+    evidence: List[EvidenceSpan] = Field(default_factory=list)
+    verified: bool = False
+    state: ImpactState = ImpactState.ACTIVE
+    held_by: Optional[str] = None  # suppressed only: the impact holding this key
+    sightings: List[Sighting] = Field(default_factory=list)  # suppressed only
+
+    @property
+    def key(self) -> tuple[str, Mechanism]:
+        return self.paper_id, self.current.mechanism
+
+
 class Analysis(MongoDocument):
     species: SpeciesNames
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -221,9 +293,51 @@ class Analysis(MongoDocument):
     error: Optional[str] = None
     completed_at: Optional[datetime] = None
     usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over the run's papers
+    runs: List[AnalysisRun] = Field(default_factory=list)
+    impacts: List[ReviewedImpact] = Field(default_factory=list)
+
+    def visible_impacts(self) -> List[ReviewedImpact]:
+        """Impacts of the analysis's current papers; a removed paper's impacts are kept for when it is added back."""
+        papers = {str(p) for p in self.paper_ids}
+        return [i for i in self.impacts if i.paper_id in papers]
 
     class Settings:
         name = "analyses"
+        use_revision = True
+
+
+class ActorKind(str, Enum):
+    HUMAN = "human"
+    AI = "ai"
+    SYSTEM = "system"
+
+
+class Actor(BaseModel):
+    kind: ActorKind
+    user_id: Optional[str] = None  # reserved until user accounts exist
+
+
+class FieldChange(BaseModel):
+    field: str
+    old: Any = None
+    new: Any = None
+
+
+class AuditEvent(MongoDocument):
+    """Append-only record of a review or run action. Kept when its analysis is deleted."""
+
+    at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    analysis_id: PydanticObjectId
+    impact_id: Optional[str] = None
+    run_id: Optional[str] = None
+    actor: Actor
+    action: str
+    changes: List[FieldChange] = Field(default_factory=list)
+    note: Optional[str] = None
+
+    class Settings:
+        name = "audit_events"
+        indexes = [[("analysis_id", 1), ("at", 1)], "impact_id"]
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +354,8 @@ class AnalysisResponse(BaseModel):
     error: Optional[str] = None
     completed_at: Optional[datetime] = None
     usage: Dict[str, int] = Field(default_factory=dict)  # summed LLM token usage over the run's papers
+    runs: List[AnalysisRun] = Field(default_factory=list)
+    impacts: List[ReviewedImpact] = Field(default_factory=list)
 
     model_config = {"populate_by_name": True}
 
@@ -255,6 +371,8 @@ class AnalysisResponse(BaseModel):
             error=doc.error,
             completed_at=doc.completed_at,
             usage=doc.usage,
+            runs=doc.runs,
+            impacts=doc.visible_impacts(),
         )
 
 
