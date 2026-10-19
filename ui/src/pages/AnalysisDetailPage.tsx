@@ -1,37 +1,29 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import {
-  Alert, Box, Breadcrumbs, Button, Chip, CircularProgress,
-  Divider, IconButton, Link, List, ListItem, ListItemText,
-  Paper, Tooltip, Typography,
+  Alert, Box, Breadcrumbs, Button, Chip, CircularProgress, IconButton, Link, Tooltip, Typography,
 } from '@mui/material'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
-import CancelIcon from '@mui/icons-material/Cancel'
-import PostAddIcon from '@mui/icons-material/PostAdd'
 import { ApiError } from '../api/client'
 import { useAnalysesStore } from '../store/analysesStore'
 import { usePapersStore } from '../store/papersStore'
 import { AnalysisStatusChip } from '../components/StatusChips'
 import AddPapersDialog from '../components/AddPapersDialog'
-import ImpactEditDialog from '../components/ImpactEditDialog'
 import ImpactsPanel from '../components/ImpactsPanel'
-import PaperViewerDialog from '../components/PaperViewerDialog'
 import RerunDialog, { type RerunCounts } from '../components/RerunDialog'
-import type { EvidenceSpan, PaperResponse, VerifiedChoice } from '../types'
+import type { VerifiedChoice } from '../types'
 
 export default function AnalysisDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { analyses, fetch, remove, removePaper, run, refresh, createImpact } = useAnalysesStore()
+  const { analyses, fetch, remove, run, refresh } = useAnalysesStore()
   const { papers, fetch: fetchPapers } = usePapersStore()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [fetched, setFetched] = useState(false)
   const [rerun, setRerun] = useState<RerunCounts | null>(null)
-  // adding an impact: select its evidence in the paper, then fill in its fields
-  const [adding, setAdding] = useState<{ paper: PaperResponse; evidence?: EvidenceSpan[] } | null>(null)
 
   useEffect(() => {
     Promise.all([fetch(), fetchPapers()]).then(() => setFetched(true))
@@ -52,7 +44,6 @@ export default function AnalysisDetailPage() {
     return <Typography color="text.secondary">Analysis not found.</Typography>
   }
 
-  const analysisPapers = papers.filter((p) => analysis.paper_ids.includes(p.id))
   const canRun = analysis.status !== 'running'
   const reviewing = analysis.impacts.some((i) => i.state !== 'superseded')
 
@@ -152,90 +143,19 @@ export default function AnalysisDetailPage() {
         <Alert severity="error" sx={{ mb: 2 }}>{analysis.error}</Alert>
       )}
 
-      {/* Papers */}
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>Papers</Typography>
-          <Button size="small" startIcon={<AddIcon />} onClick={() => setAddDialogOpen(true)}>
-            Add Papers
-          </Button>
-        </Box>
-        {analysisPapers.length === 0 ? (
-          <Typography color="text.secondary">No papers added yet.</Typography>
-        ) : (
-          <List dense disablePadding>
-            {analysisPapers.map((p, i) => (
-              <Box key={p.id}>
-                {i > 0 && <Divider />}
-                <ListItem
-                  secondaryAction={
-                    <>
-                      <Tooltip title="Add an impact from this paper">
-                        <span>
-                          <IconButton
-                            size="small" sx={{ mr: 1 }} disabled={!canRun} aria-label="Add an impact from this paper"
-                            onClick={() => setAdding({ paper: p })}
-                          >
-                            <PostAddIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title="Remove from analysis">
-                        <IconButton edge="end" size="small" onClick={() => removePaper(id!, p.id)}>
-                          <CancelIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </>
-                  }
-                >
-                  <ListItemText primary={p.filename} />
-                </ListItem>
-              </Box>
-            ))}
-          </List>
-        )}
-      </Paper>
-
-      {/* Results */}
-      {(analysis.status === 'completed' || reviewing) && (
-        <Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>Results</Typography>
-          {analysis.status === 'running' && (
-            <Alert severity="info" sx={{ mb: 2 }}>Review is paused while the analysis runs.</Alert>
-          )}
-          <ImpactsPanel analysis={analysis} papers={papers} readOnly={!canRun} />
-        </Box>
+      {/* Papers and their impacts */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>Papers</Typography>
+        <Button size="small" startIcon={<AddIcon />} onClick={() => setAddDialogOpen(true)}>
+          Add Papers
+        </Button>
+      </Box>
+      {analysis.status === 'running' && (
+        <Alert severity="info" sx={{ mb: 2 }}>Review is paused while the analysis runs.</Alert>
       )}
+      <ImpactsPanel analysis={analysis} papers={papers} readOnly={!canRun} />
 
       {rerun && <RerunDialog counts={rerun} onRun={handleRerun} onClose={() => setRerun(null)} />}
-      {adding && !adding.evidence && (
-        <PaperViewerDialog
-          paperId={adding.paper.id}
-          filename={adding.paper.filename}
-          onClose={() => setAdding(null)}
-          mode={{
-            kind: 'select',
-            confirmLabel: 'Add impact',
-            onConfirm: (evidence) => setAdding({ ...adding, evidence }),
-          }}
-        />
-      )}
-      {adding?.evidence && (
-        <ImpactEditDialog
-          title="Add impact"
-          isNew
-          paperId={adding.paper.id}
-          filename={adding.paper.filename}
-          initial={{
-            alien_species: analysis.species.scientific_name, mechanism: '', category: '', reversibility: null,
-            evidence: '', confidence: null, justification: '', impacted_species: [],
-          }}
-          evidence={adding.evidence}
-          onSave={(fields, evidence, note) => createImpact(id!, adding.paper.id, fields, evidence ?? [], note)}
-          onClose={() => setAdding(null)}
-        />
-      )}
-
       <AddPapersDialog
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}

@@ -1,21 +1,25 @@
-import { Chip } from '@mui/material'
+import { Chip, Tooltip } from '@mui/material'
+import { CATEGORY_LABELS } from './impactFields'
 
-const config: Record<string, { label: string; bg: string; color: string }> = {
-  MV: { label: 'MV – Massive',        bg: '#b71c1c', color: '#fff' },
-  MR: { label: 'MR – Major',          bg: '#e53935', color: '#fff' },
-  MO: { label: 'MO – Moderate',       bg: '#f57c00', color: '#fff' },
-  MN: { label: 'MN – Minor',          bg: '#fdd835', color: '#212121' },
-  MC: { label: 'MC – Min. Concern',   bg: '#388e3c', color: '#fff' },
-  DD: { label: 'DD – Data Deficient', bg: '#757575', color: '#fff' },
+const colors: Record<string, { bg: string; color: string }> = {
+  MV: { bg: '#b71c1c', color: '#fff' },
+  MR: { bg: '#e53935', color: '#fff' },
+  MO: { bg: '#f57c00', color: '#fff' },
+  MN: { bg: '#fdd835', color: '#212121' },
+  MC: { bg: '#388e3c', color: '#fff' },
+  DD: { bg: '#757575', color: '#fff' },
 }
 
-export function CategoryChip({ category }: { category: string }) {
-  const cfg = config[category] ?? { label: category, bg: '#9e9e9e', color: '#fff' }
-  return (
+// short: the code alone, with the full name on hover, for compact table cells
+export function CategoryChip({ category, short = false }: { category: string; short?: boolean }) {
+  const cfg = colors[category] ?? { bg: '#9e9e9e', color: '#fff' }
+  const label = CATEGORY_LABELS[category] ?? category
+  const chip = (
     <Chip
-      label={cfg.label}
+      label={short ? category : label}
       size="small"
       sx={{ bgcolor: cfg.bg, color: cfg.color, fontWeight: 600, whiteSpace: 'nowrap' }}
     />
   )
+  return short ? <Tooltip title={label}>{chip}</Tooltip> : chip
 }

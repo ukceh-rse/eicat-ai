@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import {
   Alert, Box, CircularProgress, IconButton, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -11,7 +12,6 @@ import DownloadIcon from '@mui/icons-material/Download'
 import { api } from '../api/client'
 import { usePapersStore } from '../store/papersStore'
 import { PaperStatusChip } from '../components/StatusChips'
-import PaperViewerDialog from '../components/PaperViewerDialog'
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`
@@ -24,7 +24,7 @@ export default function PapersPage() {
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [viewing, setViewing] = useState<{ id: string; filename: string } | null>(null)
+  const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetch() }, [fetch])
@@ -131,7 +131,7 @@ export default function PapersPage() {
                       <Tooltip title="View content">
                         <IconButton
                           size="small"
-                          onClick={() => setViewing({ id: p.id, filename: p.filename })}
+                          onClick={() => navigate(`/papers/${p.id}`)}
                           sx={{ mr: 0.5 }}
                         >
                           <DescriptionIcon fontSize="small" />
@@ -160,14 +160,6 @@ export default function PapersPage() {
             </TableBody>
           </Table>
         </TableContainer>
-      )}
-
-      {viewing && (
-        <PaperViewerDialog
-          paperId={viewing.id}
-          filename={viewing.filename}
-          onClose={() => setViewing(null)}
-        />
       )}
     </Box>
   )
