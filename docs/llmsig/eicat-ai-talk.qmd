@@ -74,7 +74,12 @@ The pipeline is deliberately boring, because boring is reproducible. PDFs go thr
 - Assessor reviews, rather than reads from scratch
 :::
 ::: {.column width="62%"}
+::: {.content-visible when-format="html"}
+![](assets/ui-demo.mp4){width="100%" loop="true" autoplay="true" muted="true"}
+:::
+::: {.content-visible unless-format="html"}
 ![](assets/app-ui.png)
+:::
 :::
 ::::
 
@@ -82,6 +87,17 @@ The pipeline is deliberately boring, because boring is reproducible. PDFs go thr
 **Headline:** Every impact is traceable to its evidence.
 
 This is the web app. The key design choice is that every impact the model reports carries the exact quote it relied on, so an assessor can verify it in seconds. The intended use is triage and drafting, with the expert still signing off.
+
+**Video walkthrough** (56 s, loops; the paper is Handal 2021 on the common myna, from the GISD):
+
+- **0:00 Upload a paper.** Drop in a PDF from the GISD reference list.
+- **0:05 GROBID converts it to text.** Waiting time is cut from the video.
+- **0:06 Create an analysis for the species.** *Acridotheres tristis*, common myna, then add the paper.
+- **0:21 The LLM extracts EICAT impacts.** One click on Run all; each row has a category, mechanism, impacted species, confidence and evidence.
+- **0:30 Check the evidence in the paper.** The quote is highlighted in the paper's own text.
+- **0:37 Verify it.** The reviewer ticks the impact off.
+- **0:40 Correct the severity.** Change the category inline; the row is marked "AI, edited".
+- **0:49 Every decision is recorded.** The history shows who changed what and when.
 :::
 
 # Evaluating against GISD {.section background-image="assets/section-deer.jpg"}
