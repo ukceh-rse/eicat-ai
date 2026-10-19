@@ -3,7 +3,8 @@
 A second IAA angle, independent of the LLM-based impact alignment in align_impacts.py:
 for each paper, take each annotator's most severe (highest-ranked) EICAT category and
 measure how much annotators agree on it. Pure pandas, no LLM calls needed.
-Run: `uv run --project eval eval/category_agreement.py --input eval-data/batch_a`.
+
+    uv run --project eval eval/category_agreement.py
 """
 
 from __future__ import annotations
@@ -12,48 +13,17 @@ import argparse
 import json
 from pathlib import Path
 
-import krippendorff
 import numpy as np
 import pandas as pd
 
-from anonymize import anonymize, sort_ids
-
-PAPER_COL = "Species/Reference Text"
-CATEGORY_COL = "EICAT Category"
-CATEGORIES = ["Minimal Concern", "Minor", "Moderate", "Major", "Massive"]
-RANK = {c: i for i, c in enumerate(CATEGORIES)}
-ABBR = {"Minimal Concern": "MC", "Minor": "MN", "Moderate": "MO", "Major": "MR", "Massive": "MV"}
-
-
-def load(input_dir: Path) -> pd.DataFrame:
-    files = sorted(list(input_dir.glob("*.xlsx")) + list(input_dir.glob("*.csv")))
-    ids = anonymize({f.stem for f in files})
-
-    rows = []
-    for f in files:
-        read = pd.read_csv if f.suffix == ".csv" else pd.read_excel
-        df = read(f, usecols=[PAPER_COL, CATEGORY_COL])
-        df[PAPER_COL] = df[PAPER_COL].ffill()
-        for paper, cat in zip(df[PAPER_COL], df[CATEGORY_COL]):
-            if pd.isna(paper) or pd.isna(cat):
-                continue
-            # some annotators write "MC - Minimal Concern" instead of "Minimal Concern"
-            category = str(cat).split(" - ")[-1].strip()
-            if category not in RANK and category != "Data Deficient":
-                print(f"NOTE: {f.name} has an unrecognised EICAT Category value {cat!r}, excluding it from the ranking.")
-                continue
-            rows.append({"annotator": ids[f.stem], "paper": str(paper).split(" / ")[0].strip(), "category": category})
-    return pd.DataFrame(rows)
-
-
-def max_category_matrix(data: pd.DataFrame) -> pd.DataFrame:
-    """Papers x annotators, cell = highest category rank assigned (nan = no rated category)."""
-    ranked = data.assign(rank=data.category.map(RANK)).dropna(subset=["rank"])
-    return ranked.groupby(["paper", "annotator"])["rank"].max().unstack("annotator")
+from eicat_eval.agreement import krippendorff_alpha
+from eicat_eval.annotators import load_categories, max_category_matrix, sort_ids
+from eicat_eval.eicat import CATEGORIES, CATEGORY_NAMES
+from eicat_eval.paths import CATEGORY_METRICS, IAA_INPUT
 
 
 def report(data: pd.DataFrame, matrix: pd.DataFrame, metrics_path: Path) -> dict:
-    alpha = float(krippendorff.alpha(reliability_data=matrix.to_numpy(dtype=float).T, level_of_measurement="ordinal"))
+    alpha = krippendorff_alpha(matrix.to_numpy(dtype=float), "ordinal")
 
     per_paper = []
     for paper, row in matrix.iterrows():
@@ -62,7 +32,7 @@ def report(data: pd.DataFrame, matrix: pd.DataFrame, metrics_path: Path) -> dict
             {
                 "paper": paper,
                 "n_annotators": int(len(seen)),
-                "categories": sorted({CATEGORIES[int(r)] for r in seen}),
+                "categories": sorted({CATEGORY_NAMES[CATEGORIES[int(r)]] for r in seen}),
                 "unanimous": bool(seen.nunique() <= 1),
                 "spread": int(seen.max() - seen.min()) if len(seen) else 0,
             }
@@ -90,11 +60,11 @@ def report(data: pd.DataFrame, matrix: pd.DataFrame, metrics_path: Path) -> dict
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--input", type=Path, default=Path("eval-data/batch_a"))
-    ap.add_argument("--metrics", type=Path, default=Path("eval/category_metrics.json"))
+    ap.add_argument("--input", type=Path, default=IAA_INPUT, help="Directory of annotator spreadsheets.")
+    ap.add_argument("--metrics", type=Path, default=CATEGORY_METRICS)
     args = ap.parse_args()
 
-    data = load(args.input)
+    data = load_categories(args.input)
     matrix = max_category_matrix(data)
     report(data, matrix, args.metrics)
     print(f"\nWrote metrics to {args.metrics}")

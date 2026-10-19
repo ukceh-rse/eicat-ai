@@ -3,7 +3,10 @@
 A baseline for inter-annotator agreement: ignoring EICAT category/mechanism labels,
 do annotators pick out the *same underlying impacts* from a paper? Annotators phrase
 and split impacts differently, so quotes are clustered semantically by an LLM rather
-than matched as strings. Run: `uv run --project eval eval/align_impacts.py --input eval-data/batch_a`.
+than matched as strings.
+
+    uv run --project eval eval/align_impacts.py            # cluster with Bedrock, then score
+    uv run --project eval eval/align_impacts.py --reuse    # re-score existing clusters, no model calls
 """
 
 from __future__ import annotations
@@ -11,20 +14,18 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-from itertools import combinations
 from pathlib import Path
 
-import krippendorff
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, ModelSettings
 from statsmodels.stats.inter_rater import fleiss_kappa
 
-from anonymize import anonymize, sort_ids
+from eicat_eval.agreement import krippendorff_alpha, pairwise_jaccard, presence_matrix
+from eicat_eval.annotators import coverage as paper_coverage, drop_annotators, load_evidence, sort_ids
+from eicat_eval.paths import IAA_ALIGNMENT, IAA_INPUT, IAA_METRICS
 
-PAPER_COL = "Species/Reference Text"
-EVIDENCE_COL = "Evidence for EICAT impact category"
 DEFAULT_MODEL = "bedrock:anthropic.claude-3-7-sonnet-20250219-v1:0"
 
 SYSTEM_PROMPT = """You align EICAT impact assessments made by different annotators on the same paper.
@@ -48,30 +49,6 @@ class Alignment(BaseModel):
     clusters: list[Cluster]
 
 
-def load(input_dir: Path) -> pd.DataFrame:
-    files = sorted(list(input_dir.glob("*.xlsx")) + list(input_dir.glob("*.csv")))
-    ids = anonymize({f.stem for f in files})
-
-    rows = []
-    for f in files:
-        annotator = ids[f.stem]
-        read = pd.read_csv if f.suffix == ".csv" else pd.read_excel
-        df = read(f, usecols=[PAPER_COL, EVIDENCE_COL])
-        df[PAPER_COL] = df[PAPER_COL].ffill()
-        df = df.dropna(subset=[EVIDENCE_COL])
-        for i, (paper, ev) in enumerate(zip(df[PAPER_COL], df[EVIDENCE_COL])):
-            rows.append(
-                {
-                    "annotator": annotator,
-                    # key on the species prefix: some annotators omit the "/ reference" suffix
-                    "paper": str(paper).split(" / ")[0].strip(),
-                    "quote_id": f"{annotator}-{i}",
-                    "evidence": str(ev).strip(),
-                }
-            )
-    return pd.DataFrame(rows)
-
-
 async def align_paper(agent: Agent[None, Alignment], paper: str, group: pd.DataFrame) -> Alignment:
     quotes = "\n".join(f"[{r.quote_id}] {r.evidence}" for r in group.itertuples())
     result = await agent.run(f"Paper: {paper}\n\nQuotes:\n{quotes}")
@@ -79,8 +56,8 @@ async def align_paper(agent: Agent[None, Alignment], paper: str, group: pd.DataF
 
 
 async def run(input_dir: Path, model: str) -> tuple[pd.DataFrame, dict[str, set[str]]]:
-    data = load(input_dir)
-    coverage = {p: set(a) for p, a in data.groupby("paper").annotator}
+    data = load_evidence(input_dir)
+    coverage = paper_coverage(data)
     annotator_of = dict(zip(data.quote_id, data.annotator))
     agent = Agent(
         model,
@@ -114,32 +91,10 @@ async def run(input_dir: Path, model: str) -> tuple[pd.DataFrame, dict[str, set[
     return pd.DataFrame(records), coverage
 
 
-def presence_matrix(clusters: pd.DataFrame, coverage: dict[str, set[str]], annotators: list[str]) -> np.ndarray:
-    """Impacts (rows) x annotators (cols): 1=identified, 0=annotated paper but missed it, nan=did not annotate."""
-    found = clusters.annotators.str.split(",").apply(set)
-    rows = [
-        [1.0 if a in found.iloc[i] else (0.0 if a in coverage[clusters.paper.iloc[i]] else np.nan) for a in annotators]
-        for i in range(len(clusters))
-    ]
-    return np.array(rows)
-
-
 def report(clusters: pd.DataFrame, coverage: dict[str, set[str]], metrics_path: Path) -> None:
     annotators = sort_ids({a for row in clusters.annotators for a in row.split(",")})
-    found = clusters.annotators.str.split(",").apply(set)
-
-    pairwise = []
-    for a, b in combinations(annotators, 2):
-        scores = []
-        for paper, g in clusters.groupby("paper"):
-            if not {a, b} <= coverage[paper]:
-                continue
-            fa = {i for i in g.index if a in found[i]}
-            fb = {i for i in g.index if b in found[i]}
-            if fa | fb:
-                scores.append(len(fa & fb) / len(fa | fb))
-        mean = sum(scores) / len(scores) if scores else float("nan")
-        pairwise.append({"pair": f"{a}-{b}", "jaccard": mean, "n_shared_papers": len(scores)})
+    pairwise = [{"pair": f"{a}-{b}", "jaccard": mean, "n_shared_papers": n}
+                for (a, b), (mean, n) in pairwise_jaccard(clusters, coverage, annotators).items()]
 
     valid = [p for p in pairwise if not np.isnan(p["jaccard"])]
     vals = np.array([p["jaccard"] for p in valid])
@@ -160,7 +115,7 @@ def report(clusters: pd.DataFrame, coverage: dict[str, set[str]], metrics_path: 
         "n_papers": int(clusters.paper.nunique()),
         "annotators": annotators,
         "jaccard_summary": jaccard_summary,
-        "krippendorff_alpha": float(krippendorff.alpha(reliability_data=matrix.T, level_of_measurement="nominal")),
+        "krippendorff_alpha": krippendorff_alpha(matrix, "nominal"),
         "fleiss_kappa": float(fleiss_kappa(np.column_stack([(matrix == 0).sum(1), (matrix == 1).sum(1)]))) if complete else None,
         "agreement_distribution": {int(k): int(v) for k, v in clusters.n_annotators.value_counts().sort_index().items()},
         "pairwise_jaccard": pairwise,
@@ -180,13 +135,19 @@ def report(clusters: pd.DataFrame, coverage: dict[str, set[str]], metrics_path: 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--input", type=Path, default=Path("eval-data/batch_a"))
-    ap.add_argument("--output", type=Path, default=Path("eval/iaa_alignment.csv"))
-    ap.add_argument("--metrics", type=Path, default=Path("eval/iaa_metrics.json"))
+    ap.add_argument("--input", type=Path, default=IAA_INPUT, help="Directory of annotator spreadsheets.")
+    ap.add_argument("--output", type=Path, default=IAA_ALIGNMENT)
+    ap.add_argument("--metrics", type=Path, default=IAA_METRICS)
     ap.add_argument("--model", default=DEFAULT_MODEL)
+    ap.add_argument("--reuse", action="store_true",
+                    help="Recompute metrics from the existing --output clusters (no model calls), dropping excluded annotators.")
     args = ap.parse_args()
 
-    clusters, coverage = asyncio.run(run(args.input, args.model))
+    if args.reuse:
+        clusters = drop_annotators(pd.read_csv(args.output))
+        coverage = paper_coverage(load_evidence(args.input))
+    else:
+        clusters, coverage = asyncio.run(run(args.input, args.model))
     clusters.to_csv(args.output, index=False)
     report(clusters, coverage, args.metrics)
     print(f"\nWrote {len(clusters)} clusters to {args.output}; full metrics to {args.metrics}")

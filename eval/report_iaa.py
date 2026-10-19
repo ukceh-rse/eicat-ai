@@ -13,23 +13,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from anonymize import anonymize, deanonymize
-from category_agreement import ABBR, CATEGORIES
-
-
-def landis_koch(value: float) -> str:
-    """Landis & Koch (1977) interpretation bands, as used in site/eval-protocol.qmd."""
-    if value < 0:
-        return "Poor"
-    if value <= 0.20:
-        return "Slight"
-    if value <= 0.40:
-        return "Fair"
-    if value <= 0.60:
-        return "Moderate"
-    if value <= 0.80:
-        return "Substantial"
-    return "Almost perfect"
+from eicat_eval.agreement import landis_koch
+from eicat_eval.annotators import EXCLUDED, annotator_ids, deanonymize
+from eicat_eval.eicat import CATEGORIES
+from eicat_eval.paths import CATEGORY_METRICS, IAA_FIGURES, IAA_FIGURES_NAMED, IAA_INPUT, IAA_METRICS, IAA_REPORT
 
 
 def plot_pairwise_heatmap(metrics: dict, output: Path, labels: dict[str, str] | None = None) -> None:
@@ -90,10 +77,10 @@ def plot_category_heatmap(metrics: dict, output: Path, labels: dict[str, str] | 
         for j in range(len(annotators)):
             v = matrix[i, j]
             if not np.isnan(v):
-                ax.text(j, i, ABBR[CATEGORIES[int(v)]], ha="center", va="center", color="white" if v > 2 else "black", fontsize=8)
+                ax.text(j, i, CATEGORIES[int(v)], ha="center", va="center", color="white" if v > 2 else "black", fontsize=8)
 
     cbar = fig.colorbar(im, ax=ax, ticks=range(len(CATEGORIES)))
-    cbar.ax.set_yticklabels([ABBR[c] for c in CATEGORIES])
+    cbar.ax.set_yticklabels(CATEGORIES)
     ax.set_title(f"Maximum EICAT category per paper ({metrics['n_papers']} papers, {len(annotators)} annotators)")
     fig.tight_layout()
     fig.savefig(output, dpi=200)
@@ -121,15 +108,15 @@ def presence_summary(metrics: dict) -> list[str]:
         f"- {singleton}/{total} impacts ({singleton / total * 100:.0f}%) were flagged by only one annotator; "
         f"{unanimous}/{total} ({unanimous / total * 100:.0f}%) were unanimous among everyone who covered that paper.",
         "",
-        "Agreement on which impacts are present in a paper is fair at best, even before EICAT category or "
-        "mechanism labels enter the picture. The gap between the Jaccard figures (around 0.5) and Krippendorff's "
-        "alpha (around 0.25) is expected: alpha corrects for chance agreement and is pulled down by the large "
-        "share of impacts only one annotator flagged, mostly cases where one person split or noticed something "
-        "others didn't.",
+        f"Agreement on which impacts are present in a paper is {landis_koch(alpha).lower()}, even before EICAT "
+        f"category or mechanism labels enter the picture. The gap between the Jaccard figures (mean {js['mean']:.2f}) "
+        f"and Krippendorff's alpha ({alpha:.2f}) is expected: alpha corrects for chance agreement and is pulled down "
+        "by impacts only one annotator flagged, mostly cases where one person split or noticed something others "
+        "didn't.",
     ]
 
 
-def category_summary(metrics: dict) -> list[str]:
+def category_summary(metrics: dict, presence_alpha: float) -> list[str]:
     alpha = metrics["krippendorff_alpha"]
     n, unanimous = metrics["n_papers"], metrics["unanimous_papers"]
 
@@ -142,9 +129,10 @@ def category_summary(metrics: dict) -> list[str]:
         f"{metrics['mean_spread']:.1f} category steps where annotators disagreed.",
         "",
         "Even the single most consequential number in an EICAT assessment, the worst-case category found in a "
-        "paper, had no unanimous agreement across any paper in this batch. Agreement is better than on impact "
-        "presence (alpha 0.25, Fair), but still leaves room for a system to land within human variability without "
-        "matching any one gold-standard annotator's category exactly.",
+        f"paper, was unanimous on {f'only {unanimous} of {n}' if unanimous else 'none of the'} papers in this batch. "
+        f"Agreement is {'better' if alpha > presence_alpha else 'no better'} than on impact presence "
+        f"(alpha {presence_alpha:.2f}, {landis_koch(presence_alpha)}), but still leaves room for a system to land "
+        "within human variability without matching any one gold-standard annotator's category exactly.",
     ]
 
 
@@ -158,12 +146,12 @@ def make_figures(metrics: dict, category_metrics: dict | None, output_dir: Path,
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--metrics", type=Path, default=Path("eval/iaa_metrics.json"))
-    ap.add_argument("--category-metrics", type=Path, default=Path("eval/category_metrics.json"))
-    ap.add_argument("--batch-dir", type=Path, default=Path("eval-data/batch_a"))
-    ap.add_argument("--output-dir", type=Path, default=Path("docs/images"), help="Anonymized figures, safe to publish.")
-    ap.add_argument("--named-output-dir", type=Path, default=Path("eval/figures_named"), help="Same figures with real initials, local debugging only.")
-    ap.add_argument("--summary", type=Path, default=Path("eval/iaa_report.md"))
+    ap.add_argument("--metrics", type=Path, default=IAA_METRICS)
+    ap.add_argument("--category-metrics", type=Path, default=CATEGORY_METRICS)
+    ap.add_argument("--batch-dir", type=Path, default=IAA_INPUT)
+    ap.add_argument("--output-dir", type=Path, default=IAA_FIGURES, help="Anonymized figures, safe to publish.")
+    ap.add_argument("--named-output-dir", type=Path, default=IAA_FIGURES_NAMED, help="Same figures with real initials, local debugging only.")
+    ap.add_argument("--summary", type=Path, default=IAA_REPORT)
     args = ap.parse_args()
 
     metrics = json.loads(args.metrics.read_text())
@@ -174,7 +162,7 @@ def main() -> None:
 
     lines = presence_summary(metrics)
     if category_metrics is not None:
-        lines += [""] + category_summary(category_metrics)
+        lines += [""] + category_summary(category_metrics, metrics["krippendorff_alpha"])
 
     text = "\n".join(lines)
     args.summary.write_text(text + "\n")
@@ -182,9 +170,7 @@ def main() -> None:
     print(f"\nWrote anonymized figures to {args.output_dir}, named figures to {args.named_output_dir}, summary to {args.summary}")
 
     if args.batch_dir.exists():
-        files = list(args.batch_dir.glob("*.xlsx")) + list(args.batch_dir.glob("*.csv"))
-        ids = anonymize({f.stem for f in files})
-        missing = set(ids.values()) - set(metrics["annotators"])
+        missing = set(annotator_ids(args.batch_dir)) - set(metrics["annotators"]) - EXCLUDED
         if missing:
             print(f"\nNOTE: {args.batch_dir} has annotator file(s) not covered by the impact-alignment run: {sorted(missing)}. Re-run align_impacts.py to include them.")
 
