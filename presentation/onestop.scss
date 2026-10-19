@@ -1,0 +1,72 @@
+/*-- scss:defaults --*/
+
+// OneSTOP brand guidelines: palette, Gabarito headings, Work Sans body
+@import url("https://fonts.googleapis.com/css2?family=Gabarito:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap");
+
+$onestop-green: #3CBB54;
+$onestop-mid: #329B46;
+$onestop-dark: #1E513D;
+$onestop-light: #E4EEE6;
+$onestop-ink: #1E2A24;
+$onestop-muted: #5F6B65;
+
+$font-family-sans-serif: "Work Sans", "Helvetica Neue", Arial, sans-serif;
+$presentation-heading-font: "Gabarito", "Work Sans", sans-serif;
+$presentation-heading-color: $onestop-dark;
+$presentation-heading-font-weight: 700;
+$presentation-font-size-root: 34px;
+$body-color: $onestop-ink;
+$body-bg: #FFFFFF;
+$link-color: $onestop-mid;
+$presentation-h2-font-size: 1.55em;
+
+/*-- scss:rules --*/
+
+.reveal .slide h2 {
+  text-align: left;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5em;
+}
+
+.reveal ul li::marker { color: $onestop-green; }
+.reveal ul li { margin-bottom: 0.35em; }
+
+.reveal .muted { color: $onestop-muted; }
+.reveal .big-number {
+  font-family: $presentation-heading-font;
+  font-weight: 700;
+  font-size: 2.6em;
+  color: $onestop-dark;
+  line-height: 1;
+}
+
+// figures fill the space under the title, never overflow
+.reveal .slide img { max-height: 76vh; }
+.reveal .slide .columns img { max-height: 70vh; }
+
+// EU emblem bottom-left (the guidelines put it left of, or above, the funding text)
+.reveal .footer { text-align: left; left: 28px; bottom: 14px; }
+.reveal .footer img.eu-footer, .reveal .footer p img { height: 38px; margin: 0; }
+.reveal .slide-logo { max-height: 44px !important; right: 28px !important; bottom: 14px !important; }
+.reveal .slide-number { color: $onestop-muted; background: transparent; right: 190px; bottom: 18px; }
+
+// title slide: leaf ring on the right, text on the left
+#title-slide { text-align: left; }
+#title-slide .title { font-size: 2.5em; color: $onestop-dark; max-width: 58%; }
+#title-slide .subtitle { font-family: "Work Sans", sans-serif; color: $onestop-ink; font-size: 1.05em;
+  max-width: 55%; margin-top: 0.4em; }
+#title-slide .quarto-title-authors, #title-slide .date { color: $onestop-green; font-size: 0.7em; }
+#title-slide .quarto-title-authors { justify-content: flex-start; }
+#title-slide .quarto-title-author { text-align: left; padding-left: 0; }
+
+// section dividers and the closing slide sit on the template's photos
+.reveal .section h1, .reveal .closing h2 {
+  color: #FFFFFF;
+  text-align: center;
+  font-size: 2.4em;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+}
+.reveal .closing p { color: #FFFFFF; text-align: center; }
+.reveal .closing img.eu-closing { height: 110px; width: auto; }
+.reveal .closing .funding { font-family: Arial, sans-serif; font-size: 0.42em; max-width: 70%;
+  margin: 1.5em auto 0; opacity: 0.9; }

@@ -1,0 +1,6 @@
+# Built by build.sh: figures, the reference doc and the rendered decks
+figures/
+assets/onestop-reference.pptx
+eicat-ai-talk.html
+eicat-ai-talk.pptx
+eicat-ai-talk_files/
