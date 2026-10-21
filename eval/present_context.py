@@ -1,5 +1,5 @@
 """Context figures for the EICAT-AI talk, in OneSTOP brand style: the EICAT scale, what GISD holds,
-and diagrams of the app pipeline and the GISD evaluation.
+how many of its papers were retrieved, and diagrams of the app pipeline and the GISD evaluation.
 
     uv run --project eval eval/present_context.py [--bare] [--out DIR]
 """
@@ -9,14 +9,15 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import pandas as pd
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, PathPatch, Rectangle
 from matplotlib.path import Path as MplPath
 
 from eicat_eval import style
 from eicat_eval.eicat import CATEGORY_NAMES, MECHANISM_LABELS, mechanism_label
-from eicat_eval.gisd import read_gisd
-from eicat_eval.paths import EVAL
-from eicat_eval.style import DARK, GREEN, INK, LIGHT, MID, MUTED, RAMP, SURFACE
+from eicat_eval.gisd import load_library, read_gisd
+from eicat_eval.paths import EVAL, GISD_DATA
+from eicat_eval.style import DARK, GREEN, INK, LIGHT, MID, MUTED, PALE, RAMP, SURFACE
 
 DEFINITIONS = {  # EICAT guidelines v1.1, Box 1, shortened
     "MC": "Negligible impacts;\nno reduction in native\nindividuals' performance",
@@ -223,6 +224,51 @@ def fig_gisd_sankey(out: Path) -> None:
     style.save(fig, out / "gisd_sankey.png")
 
 
+# ── 2c. retrieving the GISD papers ────────────────────────────────────────────
+
+RETRIEVAL = {  # status: (label, colour, text colour)
+    "found": ("PDF collected", DARK, SURFACE),
+    "blocked": ("Located, download blocked", PALE, INK),
+    "missing": ("Not found", "#C9CFCB", INK),
+}
+
+
+def retrieval_status(entry: dict) -> str:
+    if entry["available"]:
+        return "found"
+    return "missing" if entry.get("unavailable") else "blocked"
+
+
+def fig_retrieval(out: Path) -> None:
+    status = {e["reference"]: retrieval_status(e) for e in load_library(GISD_DATA / "references.html")}
+    data = read_gisd()
+    rows = {
+        f"{len(status):,} references": pd.Series(status).value_counts(),
+        f"{len(data):,} impact records": data.Reference.map(status).value_counts(),
+    }
+    fig, ax = style.slide("Retrieving the GISD papers",
+                          "Each GISD reference searched for a PDF; impact records follow the reference they cite.")
+    fig.subplots_adjust(left=0.2, right=0.97, top=0.72, bottom=0.12)
+    for y, (name, counts) in enumerate(reversed(rows.items())):
+        total, left = counts.sum(), 0
+        for key, (label, colour, text) in RETRIEVAL.items():
+            n = counts.get(key, 0)
+            ax.barh(y, n / total, 0.62, left=left, color=colour, zorder=2,
+                    label=label if y == 0 else None)
+            ax.text(left + n / total / 2, y, f"{n / total:.0%}\n{n:,}", ha="center", va="center", fontsize=15,
+                    color=text, fontfamily=style.HEADING, fontweight="bold", linespacing=1.3)
+            left += n / total
+    ax.set_yticks(range(len(rows)), list(reversed(rows)), fontsize=15, color=INK, fontfamily=style.HEADING,
+                  fontweight="bold")
+    ax.set_xlim(0, 1)
+    ax.set_xticks([])
+    ax.grid(visible=False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncols=3, frameon=False, fontsize=14)
+    style.save(fig, out / "gisd_retrieval.png")
+
+
 # ── 3. the app pipeline ───────────────────────────────────────────────────────
 
 
@@ -291,6 +337,7 @@ def main() -> None:
     fig_scale(args.out)
     fig_gisd(args.out)
     fig_gisd_sankey(args.out)
+    fig_retrieval(args.out)
     fig_pipeline(args.out)
     fig_eval_design(args.out)
 

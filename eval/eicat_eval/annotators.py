@@ -14,6 +14,7 @@ metric, figure or report.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -28,6 +29,7 @@ EXCLUDED = frozenset({"A7"})
 PAPER_COL = "Species/Reference Text"
 EVIDENCE_COL = "Evidence for EICAT impact category"
 CATEGORY_COL = "EICAT Category"
+MECHANISM_COL = "Impact mechanism"
 RANK = {CATEGORY_NAMES[c]: i for i, c in enumerate(CATEGORIES)}  # category name -> 0 (MC) ... 4 (MV)
 
 
@@ -71,15 +73,15 @@ def paper_key(paper) -> str:
     return str(paper).split(" / ")[0].strip()
 
 
-def read_sheets(input_dir: Path, column: str) -> Iterator[tuple[Path, str, pd.DataFrame]]:
-    """(file, pseudonym, rows) per included annotator; rows hold the forward-filled paper and `column`."""
+def read_sheets(input_dir: Path, *columns: str) -> Iterator[tuple[Path, str, pd.DataFrame]]:
+    """(file, pseudonym, rows) per included annotator; rows hold the forward-filled paper and `columns`."""
     files = sheet_files(input_dir)
     ids = anonymize({f.stem for f in files})
     for f in files:
         if ids[f.stem] in EXCLUDED:
             continue
         read = pd.read_csv if f.suffix == ".csv" else pd.read_excel
-        rows = read(f, usecols=[PAPER_COL, column])
+        rows = read(f, usecols=[PAPER_COL, *columns])
         rows[PAPER_COL] = rows[PAPER_COL].ffill()
         yield f, ids[f.stem], rows
 
@@ -92,6 +94,24 @@ def load_evidence(input_dir: Path) -> pd.DataFrame:
         for i, (paper, evidence) in enumerate(zip(rows[PAPER_COL], rows[EVIDENCE_COL])):
             records.append({"annotator": annotator, "paper": paper_key(paper), "quote_id": f"{annotator}-{i}",
                             "evidence": str(evidence).strip()})
+    return pd.DataFrame(records)
+
+
+def load_labels(input_dir: Path) -> pd.DataFrame:
+    """One row per evidence quote: quote_id (as in `load_evidence`), category code and mechanisms.
+
+    `category` is a code ("MN", "DD") or None; `mechanisms` is a frozenset of names, since some annotators
+    give two ("Competition / Predation") or number them ("(1) Competition").
+    """
+    records = []
+    for _, annotator, rows in read_sheets(input_dir, EVIDENCE_COL, CATEGORY_COL, MECHANISM_COL):
+        rows = rows.dropna(subset=[EVIDENCE_COL])
+        for i, (category, mechanism) in enumerate(zip(rows[CATEGORY_COL], rows[MECHANISM_COL])):
+            category = CATEGORY_CODES.get(str(category).split(" - ")[-1].strip()) if pd.notna(category) else None
+            mechanisms = frozenset() if pd.isna(mechanism) else frozenset(
+                re.sub(r"^\(\d+\)\s*", "", m).strip().replace(" on the ecosystem", " on ecosystem")
+                for m in str(mechanism).split(" / "))
+            records.append({"quote_id": f"{annotator}-{i}", "category": category, "mechanisms": mechanisms})
     return pd.DataFrame(records)
 
 

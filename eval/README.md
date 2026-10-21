@@ -22,6 +22,7 @@ Dependencies are managed by [`pyproject.toml`](pyproject.toml); run scripts from
 | [`category_agreement.py`](#category_agreementpy--maximum-category-per-paper) | Agreement on each paper's most severe category. |
 | [`report_iaa.py`](#report_iaapy--figures-and-interpretation) | Report figures and a written summary of the two above. |
 | [`iaa_experience.py`](#iaa_experiencepy--agreement-by-eicat-experience) | Agreement split by EICAT experience, with brand-styled figures. |
+| `iaa_labels.py` | How pairs of annotators' category and mechanism labels compare for impacts they both found, by experience group. |
 | **Presentation figures** | |
 | [`present_*.py`](#presentation-figures) | Brand-styled 16:9 figures for talks. |
 | [`tests/`](#tests) | Tests for the library. |
